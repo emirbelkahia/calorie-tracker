@@ -1,0 +1,418 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { OffFoodResult } from "@/lib/off";
+import { scaleMacros } from "@/lib/off";
+import {
+  listCustomFoods,
+  upsertCustomFood,
+} from "@/lib/db";
+import type { CustomFood } from "@/lib/types";
+import { useLocale } from "./LocaleProvider";
+
+export interface FoodDraft {
+  name: string;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  quantityG: number;
+  offId?: string;
+  saveAsCustom?: boolean;
+}
+
+type Tab = "search" | "manual" | "saved";
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (draft: FoodDraft) => Promise<void>;
+}
+
+export function AddFoodModal({ open, onClose, onAdd }: Props) {
+  const { t } = useLocale();
+  const [tab, setTab] = useState<Tab>("search");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<OffFoodResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<OffFoodResult | null>(null);
+  const [quantityG, setQuantityG] = useState(100);
+  const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
+  const [manual, setManual] = useState({
+    name: "",
+    caloriesPer100g: 0,
+    proteinPer100g: 0,
+    carbsPer100g: 0,
+    fatPer100g: 0,
+    saveAsCustom: true,
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    listCustomFoods().then(setCustomFoods);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || tab !== "search") return;
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `/api/foods/search?q=${encodeURIComponent(q)}`,
+          { signal: controller.signal },
+        );
+        const data = (await res.json()) as {
+          products: OffFoodResult[];
+          error?: string;
+        };
+        setResults(data.products ?? []);
+        if (data.error) setError(t("searchUnavailable"));
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          setError(t("searchUnavailable"));
+        }
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, open, tab, t]);
+
+  if (!open) return null;
+
+  async function confirmFromPer100(
+    source: {
+      name: string;
+      caloriesPer100g: number;
+      proteinPer100g: number;
+      carbsPer100g: number;
+      fatPer100g: number;
+      offId?: string;
+    },
+    qty: number,
+    saveAsCustom?: boolean,
+  ) {
+    setBusy(true);
+    try {
+      const macros = scaleMacros(source, qty);
+      if (saveAsCustom) {
+        await upsertCustomFood({
+          name: source.name,
+          caloriesPer100g: source.caloriesPer100g,
+          proteinPer100g: source.proteinPer100g,
+          carbsPer100g: source.carbsPer100g,
+          fatPer100g: source.fatPer100g,
+        });
+      }
+      await onAdd({
+        name: source.name,
+        ...macros,
+        quantityG: qty,
+        offId: source.offId,
+      });
+      onClose();
+      setSelected(null);
+      setQuery("");
+      setResults([]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="modal-sheet">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="display text-2xl">{t("addFoodTitle")}</h2>
+          <button type="button" className="btn btn-ghost px-3" onClick={onClose}>
+            {t("close")}
+          </button>
+        </div>
+
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          {(
+            [
+              ["search", "tabOff"],
+              ["manual", "tabManual"],
+              ["saved", "tabSaved"],
+            ] as const
+          ).map(([id, labelKey]) => (
+            <button
+              key={id}
+              type="button"
+              className={`btn ${tab === id ? "btn-primary" : "btn-ghost"} text-sm`}
+              onClick={() => {
+                setTab(id);
+                setSelected(null);
+              }}
+            >
+              {t(labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {tab === "search" && !selected && (
+          <div className="flex flex-col gap-3">
+            <div className="field">
+              <label htmlFor="off-search">{t("searchLabel")}</label>
+              <input
+                id="off-search"
+                value={query}
+                placeholder={t("searchPlaceholder")}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {searching && (
+              <p className="text-sm text-[var(--ink-muted)]">{t("searching")}</p>
+            )}
+            {error && <p className="text-sm text-[var(--red)]">{error}</p>}
+            <ul className="flex flex-col gap-2">
+              {results.map((item) => (
+                <li key={`${item.id}-${item.name}`}>
+                  <button
+                    type="button"
+                    className="w-full rounded-xl border border-[var(--line)] bg-white p-3 text-left"
+                    onClick={() => {
+                      setSelected(item);
+                      setQuantityG(100);
+                    }}
+                  >
+                    <div className="font-semibold">{item.name}</div>
+                    <div className="text-sm text-[var(--ink-muted)]">
+                      {item.brand ? `${item.brand} · ` : ""}
+                      {item.caloriesPer100g} kcal / 100g · P{" "}
+                      {item.proteinPer100g}g
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {query.trim().length >= 2 && !searching && results.length === 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setTab("manual");
+                  setManual((m) => ({ ...m, name: query.trim() }));
+                }}
+              >
+                {t("createManual", { q: query.trim() })}
+              </button>
+            )}
+          </div>
+        )}
+
+        {tab === "search" && selected && (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="text-left text-sm text-[var(--brand)]"
+              onClick={() => setSelected(null)}
+            >
+              {t("back")}
+            </button>
+            <h3 className="font-semibold">{selected.name}</h3>
+            <div className="field">
+              <label htmlFor="qty">{t("quantityG")}</label>
+              <input
+                id="qty"
+                type="number"
+                min={1}
+                value={quantityG}
+                onChange={(e) => setQuantityG(Number(e.target.value))}
+              />
+            </div>
+            <p className="text-sm text-[var(--ink-muted)]">
+              ≈ {scaleMacros(selected, quantityG).calories} kcal · P{" "}
+              {scaleMacros(selected, quantityG).proteinG}g
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy || quantityG <= 0}
+              onClick={() =>
+                confirmFromPer100(
+                  {
+                    name: selected.name,
+                    caloriesPer100g: selected.caloriesPer100g,
+                    proteinPer100g: selected.proteinPer100g,
+                    carbsPer100g: selected.carbsPer100g,
+                    fatPer100g: selected.fatPer100g,
+                    offId: selected.id,
+                  },
+                  quantityG,
+                )
+              }
+            >
+              {t("add")}
+            </button>
+          </div>
+        )}
+
+        {tab === "manual" && (
+          <div className="flex flex-col gap-3">
+            <div className="field">
+              <label htmlFor="m-name">{t("name")}</label>
+              <input
+                id="m-name"
+                value={manual.name}
+                onChange={(e) =>
+                  setManual({ ...manual, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="field">
+                <label htmlFor="m-kcal">{t("kcalPer100")}</label>
+                <input
+                  id="m-kcal"
+                  type="number"
+                  value={manual.caloriesPer100g}
+                  onChange={(e) =>
+                    setManual({
+                      ...manual,
+                      caloriesPer100g: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="m-p">{t("proteinPer100")}</label>
+                <input
+                  id="m-p"
+                  type="number"
+                  step={0.1}
+                  value={manual.proteinPer100g}
+                  onChange={(e) =>
+                    setManual({
+                      ...manual,
+                      proteinPer100g: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="m-c">{t("carbsPer100")}</label>
+                <input
+                  id="m-c"
+                  type="number"
+                  step={0.1}
+                  value={manual.carbsPer100g}
+                  onChange={(e) =>
+                    setManual({
+                      ...manual,
+                      carbsPer100g: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="m-f">{t("fatPer100")}</label>
+                <input
+                  id="m-f"
+                  type="number"
+                  step={0.1}
+                  value={manual.fatPer100g}
+                  onChange={(e) =>
+                    setManual({
+                      ...manual,
+                      fatPer100g: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="m-qty">{t("quantityG")}</label>
+              <input
+                id="m-qty"
+                type="number"
+                min={1}
+                value={quantityG}
+                onChange={(e) => setQuantityG(Number(e.target.value))}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={manual.saveAsCustom}
+                onChange={(e) =>
+                  setManual({ ...manual, saveAsCustom: e.target.checked })
+                }
+              />
+              {t("keepInFoods")}
+            </label>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy || !manual.name.trim() || quantityG <= 0}
+              onClick={() =>
+                confirmFromPer100(
+                  {
+                    name: manual.name.trim(),
+                    caloriesPer100g: manual.caloriesPer100g,
+                    proteinPer100g: manual.proteinPer100g,
+                    carbsPer100g: manual.carbsPer100g,
+                    fatPer100g: manual.fatPer100g,
+                  },
+                  quantityG,
+                  manual.saveAsCustom,
+                )
+              }
+            >
+              {t("add")}
+            </button>
+          </div>
+        )}
+
+        {tab === "saved" && (
+          <ul className="flex flex-col gap-2">
+            {customFoods.length === 0 && (
+              <p className="text-sm text-[var(--ink-muted)]">
+                {t("noSavedFoods")}
+              </p>
+            )}
+            {customFoods.map((food) => (
+              <li key={food.id}>
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-[var(--line)] bg-white p-3 text-left"
+                  onClick={() => {
+                    setSelected({
+                      id: `custom-${food.id}`,
+                      name: food.name,
+                      caloriesPer100g: food.caloriesPer100g,
+                      proteinPer100g: food.proteinPer100g,
+                      carbsPer100g: food.carbsPer100g,
+                      fatPer100g: food.fatPer100g,
+                    });
+                    setQuantityG(100);
+                    setTab("search");
+                  }}
+                >
+                  <div className="font-semibold">{food.name}</div>
+                  <div className="text-sm text-[var(--ink-muted)]">
+                    {food.caloriesPer100g} kcal / 100g
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}

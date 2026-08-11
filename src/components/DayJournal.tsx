@@ -1,0 +1,271 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDisplayDate } from "@/lib/dates";
+import { dayColor, DAY_COLOR_HEX } from "@/lib/day-status";
+import {
+  addFoodEntry,
+  addSnack,
+  deleteFoodEntry,
+  deleteMeal,
+  ensureDefaultMeals,
+  ensureProfile,
+  getDayTotals,
+  getEntriesForMeals,
+} from "@/lib/db";
+import type { DayTotals, FoodEntry, Meal, MealType, Profile } from "@/lib/types";
+import { AddFoodModal, type FoodDraft } from "./AddFoodModal";
+import { useLocale } from "./LocaleProvider";
+
+interface Props {
+  date: string;
+}
+
+function mealTitle(
+  meal: Meal,
+  t: (key: "breakfast" | "lunch" | "dinner" | "snack") => string,
+) {
+  if (meal.type === "snack") return meal.name;
+  return t(meal.type as Exclude<MealType, "snack">);
+}
+
+export function DayJournal({ date }: Props) {
+  const { t, locale } = useLocale();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [entries, setEntries] = useState<FoodEntry[]>([]);
+  const [totals, setTotals] = useState<DayTotals | null>(null);
+  const [activeMealId, setActiveMealId] = useState<number | null>(null);
+  const [snackName, setSnackName] = useState("");
+  const [showSnackInput, setShowSnackInput] = useState(false);
+
+  const reload = useCallback(async () => {
+    const p = await ensureProfile();
+    const m = await ensureDefaultMeals(date);
+    const e = await getEntriesForMeals(m.map((x) => x.id!));
+    const dayTotals = await getDayTotals(date);
+    setProfile(p);
+    setMeals(m);
+    setEntries(e);
+    setTotals(dayTotals);
+  }, [date]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const entriesByMeal = useMemo(() => {
+    const map = new Map<number, FoodEntry[]>();
+    for (const entry of entries) {
+      const list = map.get(entry.mealId) ?? [];
+      list.push(entry);
+      map.set(entry.mealId, list);
+    }
+    return map;
+  }, [entries]);
+
+  const color = dayColor(totals, profile);
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
+
+  async function handleAdd(draft: FoodDraft) {
+    if (!activeMealId) return;
+    await addFoodEntry({
+      mealId: activeMealId,
+      name: draft.name,
+      calories: draft.calories,
+      proteinG: draft.proteinG,
+      carbsG: draft.carbsG,
+      fatG: draft.fatG,
+      quantityG: draft.quantityG,
+      offId: draft.offId,
+    });
+    await reload();
+  }
+
+  async function handleAddSnack() {
+    const meal = await addSnack(date, snackName || t("snack"));
+    setSnackName("");
+    setShowSnackInput(false);
+    await reload();
+    setActiveMealId(meal.id ?? null);
+  }
+
+  if (!profile || !totals) {
+    return <p className="text-[var(--ink-muted)]">{t("loading")}</p>;
+  }
+
+  const remaining = profile.dailyCalorieTarget - totals.calories;
+  const statusText =
+    color === "gray"
+      ? t("empty")
+      : color === "green"
+        ? t("ok")
+        : color === "yellow"
+          ? t("limit")
+          : t("offTarget");
+
+  return (
+    <div className="flex flex-col gap-5">
+      <header className="pt-2">
+        <Link href="/" className="text-sm text-[var(--brand)]">
+          {t("backCalendar")}
+        </Link>
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="display text-3xl capitalize text-[var(--brand)]">
+              {formatDisplayDate(date, dateLocale)}
+            </h1>
+            <p className="mt-1 text-[var(--ink-muted)]">
+              {remaining >= 0
+                ? t("kcalLeft", { n: Math.round(remaining) })
+                : t("kcalOver", { n: Math.round(Math.abs(remaining)) })}
+            </p>
+          </div>
+          <span
+            className="rounded-full px-3 py-1 text-sm font-semibold text-white"
+            style={{ background: DAY_COLOR_HEX[color] }}
+          >
+            {statusText}
+          </span>
+        </div>
+      </header>
+
+      <section className="macro-row">
+        <div className="macro-chip">
+          <strong>{Math.round(totals.calories)}</strong>
+          <span>/ {profile.dailyCalorieTarget} kcal</span>
+        </div>
+        <div className="macro-chip">
+          <strong>{Math.round(totals.proteinG)}</strong>
+          <span>/ {profile.dailyProteinTargetG} g P</span>
+        </div>
+        <div className="macro-chip">
+          <strong>{Math.round(totals.carbsG)}</strong>
+          <span>g C</span>
+        </div>
+        <div className="macro-chip">
+          <strong>{Math.round(totals.fatG)}</strong>
+          <span>g F</span>
+        </div>
+      </section>
+
+      {meals.map((meal) => {
+        const mealEntries = entriesByMeal.get(meal.id!) ?? [];
+        const mealKcal = mealEntries.reduce((s, e) => s + e.calories, 0);
+        return (
+          <section key={meal.id} className="panel p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="display text-xl">{mealTitle(meal, t)}</h2>
+                <p className="text-sm text-[var(--ink-muted)]">
+                  {Math.round(mealKcal)} kcal
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {meal.type === "snack" && (
+                  <button
+                    type="button"
+                    className="btn btn-danger px-3 text-sm"
+                    onClick={async () => {
+                      if (!meal.id) return;
+                      await deleteMeal(meal.id);
+                      await reload();
+                    }}
+                  >
+                    {t("delete")}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary text-sm"
+                  onClick={() => setActiveMealId(meal.id ?? null)}
+                >
+                  {t("addFood")}
+                </button>
+              </div>
+            </div>
+
+            {mealEntries.length === 0 ? (
+              <p className="text-sm text-[var(--ink-muted)]">{t("noFood")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {mealEntries.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex items-start justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                  >
+                    <div>
+                      <div className="font-medium">{entry.name}</div>
+                      <div className="text-sm text-[var(--ink-muted)]">
+                        {entry.quantityG}g · {Math.round(entry.calories)} kcal ·
+                        P {entry.proteinG}g · C {entry.carbsG}g · F{" "}
+                        {entry.fatG}g
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-sm text-[var(--red)]"
+                      onClick={async () => {
+                        if (!entry.id) return;
+                        await deleteFoodEntry(entry.id);
+                        await reload();
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+
+      {showSnackInput ? (
+        <div className="panel flex flex-col gap-3 p-4">
+          <div className="field">
+            <label htmlFor="snack">{t("snackName")}</label>
+            <input
+              id="snack"
+              value={snackName}
+              placeholder={t("snackPlaceholder")}
+              onChange={(e) => setSnackName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost flex-1"
+              onClick={() => setShowSnackInput(false)}
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary flex-1"
+              onClick={handleAddSnack}
+            >
+              {t("create")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-ghost w-full"
+          onClick={() => setShowSnackInput(true)}
+        >
+          {t("addSnack")}
+        </button>
+      )}
+
+      <AddFoodModal
+        open={activeMealId !== null}
+        onClose={() => setActiveMealId(null)}
+        onAdd={handleAdd}
+      />
+    </div>
+  );
+}
