@@ -89,6 +89,25 @@ export const messages = {
     activityModerate: "Modéré (3–5j/sem)",
     activityActive: "Actif (6–7j/sem)",
     activityVeryActive: "Très actif",
+    mistralKeyTitle: "Clé API Mistral",
+    mistralKeyHint:
+      "Optionnel. Ta clé reste sur cet appareil et débloque la photo d’étiquette. Elle n’est jamais mise dans le backup.",
+    mistralKeyPlaceholder: "Coller ta clé Mistral…",
+    mistralKeySaved: "Clé enregistrée",
+    mistralKeyCleared: "Clé effacée",
+    mistralKeySave: "Enregistrer la clé",
+    mistralKeyClear: "Effacer",
+    mistralKeyPresent: "Une clé est enregistrée sur cet appareil.",
+    photoLabel: "Photo d’étiquette",
+    extractLabel: "Extraire",
+    extractingLabel: "Extraction…",
+    labelHint:
+      "Ajoute une clé Mistral dans Réglages pour débloquer la photo d’étiquette.",
+    labelExtractFailed: "Extraction impossible — vérifie la photo ou saisis à la main.",
+    labelBadKey: "Clé Mistral invalide — vérifie-la dans Réglages.",
+    labelBasisWarning:
+      "Valeurs peut-être par portion (pas /100g) — vérifie avant d’ajouter.",
+    changePhoto: "Changer la photo",
   },
   en: {
     brand: "Calorie Tracker",
@@ -177,6 +196,24 @@ export const messages = {
     activityModerate: "Moderate (3–5 days/week)",
     activityActive: "Active (6–7 days/week)",
     activityVeryActive: "Very active",
+    mistralKeyTitle: "Mistral API key",
+    mistralKeyHint:
+      "Optional. Stored on this device only; unlocks label photo. Never included in backup export.",
+    mistralKeyPlaceholder: "Paste your Mistral key…",
+    mistralKeySaved: "Key saved",
+    mistralKeyCleared: "Key cleared",
+    mistralKeySave: "Save key",
+    mistralKeyClear: "Clear",
+    mistralKeyPresent: "A key is saved on this device.",
+    photoLabel: "Label photo",
+    extractLabel: "Extract",
+    extractingLabel: "Extracting…",
+    labelHint: "Add a Mistral key in Settings to unlock label photo.",
+    labelExtractFailed: "Extraction failed — check the photo or enter manually.",
+    labelBadKey: "Invalid Mistral key — check it in Settings.",
+    labelBasisWarning:
+      "Values may be per serving (not /100g) — double-check before adding.",
+    changePhoto: "Change photo",
   },
 } as const;
 

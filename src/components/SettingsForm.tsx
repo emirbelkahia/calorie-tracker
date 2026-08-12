@@ -16,6 +16,11 @@ import type {
   Sex,
 } from "@/lib/types";
 import type { MessageKey } from "@/lib/i18n";
+import {
+  clearMistralApiKey,
+  getMistralApiKey,
+  setMistralApiKey,
+} from "@/lib/mistral-key";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
 
@@ -37,6 +42,8 @@ export function SettingsForm() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [mistralKeyDraft, setMistralKeyDraft] = useState("");
+  const [hasStoredKey, setHasStoredKey] = useState(false);
 
   useEffect(() => {
     ensureProfile().then((p) => {
@@ -51,6 +58,7 @@ export function SettingsForm() {
         proteinGPerKg: p.proteinGPerKg,
       });
     });
+    setHasStoredKey(Boolean(getMistralApiKey()));
   }, []);
 
   const preview = useMemo(() => {
@@ -262,6 +270,53 @@ export function SettingsForm() {
           {saved ? t("saved") : t("save")}
         </button>
       </form>
+
+      <section className="panel flex flex-col gap-3 p-4">
+        <h2 className="display text-lg">{t("mistralKeyTitle")}</h2>
+        <p className="text-sm text-[var(--ink-muted)]">{t("mistralKeyHint")}</p>
+        {hasStoredKey && (
+          <p className="text-sm text-[var(--brand)]">{t("mistralKeyPresent")}</p>
+        )}
+        <div className="field">
+          <label htmlFor="mistral-key">{t("mistralKeyTitle")}</label>
+          <input
+            id="mistral-key"
+            type="password"
+            autoComplete="off"
+            placeholder={t("mistralKeyPlaceholder")}
+            value={mistralKeyDraft}
+            onChange={(e) => setMistralKeyDraft(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary flex-1"
+            disabled={!mistralKeyDraft.trim()}
+            onClick={() => {
+              setMistralApiKey(mistralKeyDraft);
+              setMistralKeyDraft("");
+              setHasStoredKey(true);
+              setMessage(t("mistralKeySaved"));
+            }}
+          >
+            {t("mistralKeySave")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={!hasStoredKey && !mistralKeyDraft}
+            onClick={() => {
+              clearMistralApiKey();
+              setMistralKeyDraft("");
+              setHasStoredKey(false);
+              setMessage(t("mistralKeyCleared"));
+            }}
+          >
+            {t("mistralKeyClear")}
+          </button>
+        </div>
+      </section>
 
       <section className="panel flex flex-col gap-3 p-4">
         <h2 className="display text-lg">{t("language")}</h2>

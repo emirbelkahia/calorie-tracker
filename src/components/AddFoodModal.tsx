@@ -8,6 +8,9 @@ import {
   upsertCustomFood,
 } from "@/lib/db";
 import type { CustomFood } from "@/lib/types";
+import type { LabelNutrition } from "@/lib/mistral-label";
+import { compressImageForOcr } from "@/lib/image-compress";
+import { getMistralApiKey, hasMistralApiKey } from "@/lib/mistral-key";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
 
@@ -49,10 +52,19 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     saveAsCustom: true,
   });
   const [busy, setBusy] = useState(false);
+  const [canUseLabelPhoto, setCanUseLabelPhoto] = useState(false);
+  const [labelPreview, setLabelPreview] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [labelWarning, setLabelWarning] = useState<string | null>(null);
+  const [labelError, setLabelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     listCustomFoods().then(setCustomFoods);
+    setCanUseLabelPhoto(hasMistralApiKey());
+    setLabelPreview(null);
+    setLabelWarning(null);
+    setLabelError(null);
   }, [open]);
 
   useEffect(() => {
@@ -93,8 +105,6 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     };
   }, [query, open, tab, t]);
 
-  if (!open) return null;
-
   async function confirmFromPer100(
     source: {
       name: string;
@@ -129,10 +139,79 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
       setSelected(null);
       setQuery("");
       setResults([]);
+      setLabelPreview(null);
+      setLabelWarning(null);
+      setLabelError(null);
     } finally {
       setBusy(false);
     }
   }
+
+  async function onPickLabelPhoto(file: File | null) {
+    if (!file) return;
+    setLabelError(null);
+    setLabelWarning(null);
+    try {
+      const dataUrl = await compressImageForOcr(file);
+      setLabelPreview(dataUrl);
+    } catch {
+      setLabelError(t("labelExtractFailed"));
+    }
+  }
+
+  async function onExtractLabel() {
+    if (!labelPreview) return;
+    const apiKey = getMistralApiKey();
+    if (!apiKey) {
+      setCanUseLabelPhoto(false);
+      setLabelError(t("labelHint"));
+      return;
+    }
+    setExtracting(true);
+    setLabelError(null);
+    setLabelWarning(null);
+    try {
+      const res = await fetch("/api/foods/from-label", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-mistral-api-key": apiKey,
+        },
+        body: JSON.stringify({ imageDataUrl: labelPreview }),
+      });
+      const data = (await res.json()) as {
+        label?: LabelNutrition;
+        error?: string;
+      };
+      if (!res.ok || !data.label) {
+        if (data.error === "invalid_api_key" || res.status === 401) {
+          setLabelError(t("labelBadKey"));
+        } else {
+          setLabelError(t("labelExtractFailed"));
+        }
+        return;
+      }
+      const label = data.label;
+      setManual((m) => ({
+        ...m,
+        name: label.name || m.name,
+        caloriesPer100g: label.caloriesPer100g,
+        proteinPer100g: label.proteinPer100g,
+        carbsPer100g: label.carbsPer100g,
+        fatPer100g: label.fatPer100g,
+        saveAsCustom: true,
+      }));
+      if (label.basis !== "per_100g") {
+        setLabelWarning(t("labelBasisWarning"));
+      }
+    } catch {
+      setLabelError(t("labelExtractFailed"));
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  if (!open) return null;
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
@@ -267,6 +346,62 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
 
         {tab === "manual" && (
           <div className="flex flex-col gap-3">
+            {canUseLabelPhoto && (
+              <div className="flex flex-col gap-2 rounded-xl border border-[var(--line)] bg-white p-3">
+                {!labelPreview ? (
+                  <label className="btn btn-secondary cursor-pointer">
+                    {t("photoLabel")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) =>
+                        onPickLabelPhoto(e.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={labelPreview}
+                      alt=""
+                      className="max-h-48 w-full rounded-lg object-contain bg-[var(--bg)]"
+                    />
+                    <div className="flex gap-2">
+                      <label className="btn btn-ghost flex-1 cursor-pointer text-sm">
+                        {t("changePhoto")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) =>
+                            onPickLabelPhoto(e.target.files?.[0] ?? null)
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-secondary flex-1 text-sm"
+                        disabled={extracting}
+                        onClick={onExtractLabel}
+                      >
+                        {extracting ? t("extractingLabel") : t("extractLabel")}
+                      </button>
+                    </div>
+                  </>
+                )}
+                {labelError && (
+                  <p className="text-sm text-[var(--red)]">{labelError}</p>
+                )}
+                {labelWarning && (
+                  <p className="text-sm text-[var(--yellow)]">{labelWarning}</p>
+                )}
+              </div>
+            )}
+
             <div className="field">
               <label htmlFor="m-name">{t("name")}</label>
               <input
