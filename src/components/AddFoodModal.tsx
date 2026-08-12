@@ -58,11 +58,13 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   useEffect(() => {
     if (!open || tab !== "search") return;
     const q = query.trim();
-    if (q.length < 2) {
+    if (q.length < 3) {
       setResults([]);
+      setSearching(false);
       return;
     }
     const controller = new AbortController();
+    // OFF: ~10 search req/min — avoid search-as-you-type
     const timer = setTimeout(async () => {
       setSearching(true);
       setError(null);
@@ -84,7 +86,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
       } finally {
         setSearching(false);
       }
-    }, 350);
+    }, 1000);
     return () => {
       clearTimeout(timer);
       controller.abort();
@@ -201,7 +203,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                 </li>
               ))}
             </ul>
-            {query.trim().length >= 2 && !searching && results.length === 0 && (
+            {query.trim().length >= 3 && !searching && results.length === 0 && (
               <button
                 type="button"
                 className="btn btn-secondary"
