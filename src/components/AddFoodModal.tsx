@@ -9,6 +9,7 @@ import {
 } from "@/lib/db";
 import type { CustomFood } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
+import { NumberField } from "./NumberField";
 
 export interface FoodDraft {
   name: string;
@@ -227,12 +228,12 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
             <h3 className="font-semibold">{selected.name}</h3>
             <div className="field">
               <label htmlFor="qty">{t("quantityG")}</label>
-              <input
+              <NumberField
                 id="qty"
-                type="number"
+                mode="decimal"
                 min={1}
                 value={quantityG}
-                onChange={(e) => setQuantityG(Number(e.target.value))}
+                onValueChange={setQuantityG}
               />
             </div>
             <p className="text-sm text-[var(--ink-muted)]">
@@ -277,72 +278,61 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="field">
                 <label htmlFor="m-kcal">{t("kcalPer100")}</label>
-                <input
+                <NumberField
                   id="m-kcal"
-                  type="number"
+                  mode="decimal"
+                  min={0}
                   value={manual.caloriesPer100g}
-                  onChange={(e) =>
-                    setManual({
-                      ...manual,
-                      caloriesPer100g: Number(e.target.value),
-                    })
+                  onValueChange={(caloriesPer100g) =>
+                    setManual({ ...manual, caloriesPer100g })
                   }
                 />
               </div>
               <div className="field">
                 <label htmlFor="m-p">{t("proteinPer100")}</label>
-                <input
+                <NumberField
                   id="m-p"
-                  type="number"
-                  step={0.1}
+                  mode="decimal"
+                  min={0}
                   value={manual.proteinPer100g}
-                  onChange={(e) =>
-                    setManual({
-                      ...manual,
-                      proteinPer100g: Number(e.target.value),
-                    })
+                  onValueChange={(proteinPer100g) =>
+                    setManual({ ...manual, proteinPer100g })
                   }
                 />
               </div>
               <div className="field">
                 <label htmlFor="m-c">{t("carbsPer100")}</label>
-                <input
+                <NumberField
                   id="m-c"
-                  type="number"
-                  step={0.1}
+                  mode="decimal"
+                  min={0}
                   value={manual.carbsPer100g}
-                  onChange={(e) =>
-                    setManual({
-                      ...manual,
-                      carbsPer100g: Number(e.target.value),
-                    })
+                  onValueChange={(carbsPer100g) =>
+                    setManual({ ...manual, carbsPer100g })
                   }
                 />
               </div>
               <div className="field">
                 <label htmlFor="m-f">{t("fatPer100")}</label>
-                <input
+                <NumberField
                   id="m-f"
-                  type="number"
-                  step={0.1}
+                  mode="decimal"
+                  min={0}
                   value={manual.fatPer100g}
-                  onChange={(e) =>
-                    setManual({
-                      ...manual,
-                      fatPer100g: Number(e.target.value),
-                    })
+                  onValueChange={(fatPer100g) =>
+                    setManual({ ...manual, fatPer100g })
                   }
                 />
               </div>
             </div>
             <div className="field">
               <label htmlFor="m-qty">{t("quantityG")}</label>
-              <input
+              <NumberField
                 id="m-qty"
-                type="number"
+                mode="decimal"
                 min={1}
                 value={quantityG}
-                onChange={(e) => setQuantityG(Number(e.target.value))}
+                onValueChange={setQuantityG}
               />
             </div>
             <label className="flex items-center gap-2 text-sm">

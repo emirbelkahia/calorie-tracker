@@ -17,6 +17,7 @@ import type {
 } from "@/lib/types";
 import type { MessageKey } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
+import { NumberField } from "./NumberField";
 
 type FormState = Omit<
   Profile,
@@ -147,42 +148,35 @@ export function SettingsForm() {
           </div>
           <div className="field">
             <label htmlFor="age">{t("age")}</label>
-            <input
+            <NumberField
               id="age"
-              type="number"
+              mode="numeric"
               min={15}
               max={100}
               value={form.age}
-              onChange={(e) =>
-                setForm({ ...form, age: Number(e.target.value) })
-              }
+              onValueChange={(age) => setForm({ ...form, age })}
             />
           </div>
           <div className="field">
             <label htmlFor="weight">{t("weight")}</label>
-            <input
+            <NumberField
               id="weight"
-              type="number"
+              mode="decimal"
               min={30}
               max={250}
-              step={0.1}
               value={form.weightKg}
-              onChange={(e) =>
-                setForm({ ...form, weightKg: Number(e.target.value) })
-              }
+              onValueChange={(weightKg) => setForm({ ...form, weightKg })}
             />
           </div>
           <div className="field">
             <label htmlFor="height">{t("height")}</label>
-            <input
+            <NumberField
               id="height"
-              type="number"
+              mode="numeric"
               min={120}
               max={230}
               value={form.heightCm}
-              onChange={(e) =>
-                setForm({ ...form, heightCm: Number(e.target.value) })
-              }
+              onValueChange={(heightCm) => setForm({ ...form, heightCm })}
             />
           </div>
         </div>
@@ -224,15 +218,15 @@ export function SettingsForm() {
           </div>
           <div className="field">
             <label htmlFor="goalPercent">{t("gapPercent")}</label>
-            <input
+            <NumberField
               id="goalPercent"
-              type="number"
+              mode="numeric"
               min={0}
               max={40}
               disabled={form.goalMode === "maintain"}
               value={form.goalPercent}
-              onChange={(e) =>
-                setForm({ ...form, goalPercent: Number(e.target.value) })
+              onValueChange={(goalPercent) =>
+                setForm({ ...form, goalPercent })
               }
             />
           </div>
@@ -240,15 +234,14 @@ export function SettingsForm() {
 
         <div className="field">
           <label htmlFor="protein">{t("proteinPerKg")}</label>
-          <input
+          <NumberField
             id="protein"
-            type="number"
+            mode="decimal"
             min={1.6}
             max={2}
-            step={0.1}
             value={form.proteinGPerKg}
-            onChange={(e) =>
-              setForm({ ...form, proteinGPerKg: Number(e.target.value) })
+            onValueChange={(proteinGPerKg) =>
+              setForm({ ...form, proteinGPerKg })
             }
           />
         </div>
