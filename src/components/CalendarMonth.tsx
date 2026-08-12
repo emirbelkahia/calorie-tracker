@@ -11,6 +11,7 @@ import { dayColor, DAY_COLOR_HEX } from "@/lib/day-status";
 import { ensureProfile, getMonthTotals } from "@/lib/db";
 import type { DayColor, DayTotals, Profile } from "@/lib/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale } from "./LocaleProvider";
 
 function statusLabel(
@@ -24,6 +25,7 @@ function statusLabel(
 }
 
 export function CalendarMonth() {
+  const router = useRouter();
   const { t, locale } = useLocale();
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
@@ -31,7 +33,6 @@ export function CalendarMonth() {
   });
   const [profile, setProfile] = useState<Profile | null>(null);
   const [totals, setTotals] = useState<Record<string, DayTotals>>({});
-  const [selected, setSelected] = useState(toDateKey(new Date()));
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -55,8 +56,8 @@ export function CalendarMonth() {
 
   const cells = monthGrid(cursor.getFullYear(), cursor.getMonth());
   const today = toDateKey(new Date());
-  const selectedTotals = totals[selected];
-  const selectedColor: DayColor = dayColor(selectedTotals, profile);
+  const todayTotals = totals[today];
+  const todayColor: DayColor = dayColor(todayTotals, profile);
   const dateLocale = locale === "en" ? "en-US" : "fr-FR";
 
   const monthLabel = cursor.toLocaleDateString(dateLocale, {
@@ -114,7 +115,7 @@ export function CalendarMonth() {
                 data-color={color}
                 data-today={key === today}
                 aria-label={`${key}, ${color}`}
-                onClick={() => setSelected(key)}
+                onClick={() => router.push(`/day/${key}`)}
               >
                 {dayNum}
               </button>
@@ -130,54 +131,48 @@ export function CalendarMonth() {
           <>
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="display text-xl capitalize">
-                {new Date(selected + "T12:00:00").toLocaleDateString(
-                  dateLocale,
-                  {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  },
-                )}
+                {new Date(today + "T12:00:00").toLocaleDateString(dateLocale, {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}
               </h2>
               <span
                 className="rounded-full px-3 py-1 text-sm font-semibold text-white"
-                style={{ background: DAY_COLOR_HEX[selectedColor] }}
+                style={{ background: DAY_COLOR_HEX[todayColor] }}
               >
-                {statusLabel(selectedColor, t)}
+                {statusLabel(todayColor, t)}
               </span>
             </div>
 
             <div className="macro-row">
               <div className="macro-chip">
                 <strong>
-                  {selectedTotals ? Math.round(selectedTotals.calories) : 0}
+                  {todayTotals ? Math.round(todayTotals.calories) : 0}
                 </strong>
                 <span>/ {profile.dailyCalorieTarget} kcal</span>
               </div>
               <div className="macro-chip">
                 <strong>
-                  {selectedTotals ? Math.round(selectedTotals.proteinG) : 0}
+                  {todayTotals ? Math.round(todayTotals.proteinG) : 0}
                 </strong>
                 <span>/ {profile.dailyProteinTargetG} g P</span>
               </div>
               <div className="macro-chip">
                 <strong>
-                  {selectedTotals ? Math.round(selectedTotals.carbsG) : 0}
+                  {todayTotals ? Math.round(todayTotals.carbsG) : 0}
                 </strong>
                 <span>g C</span>
               </div>
               <div className="macro-chip">
                 <strong>
-                  {selectedTotals ? Math.round(selectedTotals.fatG) : 0}
+                  {todayTotals ? Math.round(todayTotals.fatG) : 0}
                 </strong>
                 <span>g F</span>
               </div>
             </div>
 
-            <Link
-              href={`/day/${selected}`}
-              className="btn btn-primary mt-4 w-full"
-            >
+            <Link href={`/day/${today}`} className="btn btn-primary mt-4 w-full">
               {t("openJournal")}
             </Link>
           </>
