@@ -13,6 +13,7 @@ import type { DayColor, DayTotals, Profile } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SettingsGear } from "./SettingsGear";
+import { MacroRow } from "./MacroRow";
 import { useLocale } from "./LocaleProvider";
 
 function statusLabel(
@@ -147,32 +148,19 @@ export function CalendarMonth() {
               </span>
             </div>
 
-            <div className="macro-row">
-              <div className="macro-chip">
-                <strong>
-                  {todayTotals ? Math.round(todayTotals.calories) : 0}
-                </strong>
-                <span>/ {profile.dailyCalorieTarget} {t("macroKcal")}</span>
-              </div>
-              <div className="macro-chip">
-                <strong>
-                  {todayTotals ? Math.round(todayTotals.proteinG) : 0}
-                </strong>
-                <span>/ {profile.dailyProteinTargetG} {t("macroProt")}</span>
-              </div>
-              <div className="macro-chip">
-                <strong>
-                  {todayTotals ? Math.round(todayTotals.carbsG) : 0}
-                </strong>
-                <span>{t("macroCarbo")}</span>
-              </div>
-              <div className="macro-chip">
-                <strong>
-                  {todayTotals ? Math.round(todayTotals.fatG) : 0}
-                </strong>
-                <span>{t("macroFat")}</span>
-              </div>
-            </div>
+            <MacroRow
+              calories={todayTotals ? todayTotals.calories : 0}
+              proteinG={todayTotals ? todayTotals.proteinG : 0}
+              carbsG={todayTotals ? todayTotals.carbsG : 0}
+              fatG={todayTotals ? todayTotals.fatG : 0}
+              profile={profile}
+              labels={{
+                kcal: t("macroKcal"),
+                prot: t("macroProt"),
+                carbo: t("macroCarbo"),
+                fat: t("macroFat"),
+              }}
+            />
 
             <Link href={`/day/${today}`} className="btn btn-primary mt-4 w-full">
               {t("openJournal")}

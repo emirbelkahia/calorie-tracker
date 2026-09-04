@@ -234,11 +234,40 @@ textarea {
 }
 
 .macro-chip {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   background: white;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 10px 8px;
+  padding: 10px 6px;
   text-align: center;
+}
+
+.macro-chip-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.28;
+}
+
+.macro-chip[data-tone="green"] .macro-chip-fill {
+  background: var(--green);
+}
+.macro-chip[data-tone="yellow"] .macro-chip-fill {
+  background: var(--yellow);
+}
+.macro-chip[data-tone="red"] .macro-chip-fill {
+  background: var(--red);
+}
+
+.macro-chip strong,
+.macro-chip span {
+  position: relative;
+  z-index: 1;
 }
 
 .macro-chip strong {

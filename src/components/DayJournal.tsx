@@ -16,6 +16,7 @@ import {
 } from "@/lib/db";
 import type { DayTotals, FoodEntry, Meal, MealType, Profile } from "@/lib/types";
 import { AddFoodModal, type FoodDraft } from "./AddFoodModal";
+import { MacroRow } from "./MacroRow";
 import { SettingsGear } from "./SettingsGear";
 import { useLocale } from "./LocaleProvider";
 
@@ -135,24 +136,19 @@ export function DayJournal({ date }: Props) {
         </div>
       </header>
 
-      <section className="macro-row">
-        <div className="macro-chip">
-          <strong>{Math.round(totals.calories)}</strong>
-          <span>/ {profile.dailyCalorieTarget} {t("macroKcal")}</span>
-        </div>
-        <div className="macro-chip">
-          <strong>{Math.round(totals.proteinG)}</strong>
-          <span>/ {profile.dailyProteinTargetG} {t("macroProt")}</span>
-        </div>
-        <div className="macro-chip">
-          <strong>{Math.round(totals.carbsG)}</strong>
-          <span>{t("macroCarbo")}</span>
-        </div>
-        <div className="macro-chip">
-          <strong>{Math.round(totals.fatG)}</strong>
-          <span>{t("macroFat")}</span>
-        </div>
-      </section>
+      <MacroRow
+        calories={totals.calories}
+        proteinG={totals.proteinG}
+        carbsG={totals.carbsG}
+        fatG={totals.fatG}
+        profile={profile}
+        labels={{
+          kcal: t("macroKcal"),
+          prot: t("macroProt"),
+          carbo: t("macroCarbo"),
+          fat: t("macroFat"),
+        }}
+      />
 
       {meals.map((meal) => {
         const mealEntries = entriesByMeal.get(meal.id!) ?? [];
