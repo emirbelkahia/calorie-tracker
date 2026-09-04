@@ -16,6 +16,7 @@ import {
 } from "@/lib/db";
 import type { DayTotals, FoodEntry, Meal, MealType, Profile } from "@/lib/types";
 import { AddFoodModal, type FoodDraft } from "./AddFoodModal";
+import { SettingsGear } from "./SettingsGear";
 import { useLocale } from "./LocaleProvider";
 
 interface Props {
@@ -108,11 +109,14 @@ export function DayJournal({ date }: Props) {
   return (
     <div className="flex flex-col gap-5">
       <header className="pt-2">
-        <Link href="/" className="text-sm text-[var(--brand)]">
-          {t("backCalendar")}
-        </Link>
-        <div className="mt-2 flex items-start justify-between gap-3">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="text-sm text-[var(--brand)]">
+            {t("backCalendar")}
+          </Link>
+          <SettingsGear />
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="display text-3xl capitalize text-[var(--brand)]">
               {formatDisplayDate(date, dateLocale)}
             </h1>
@@ -123,7 +127,7 @@ export function DayJournal({ date }: Props) {
             </p>
           </div>
           <span
-            className="rounded-full px-3 py-1 text-sm font-semibold text-white"
+            className="status-pill"
             style={{ background: DAY_COLOR_HEX[color] }}
           >
             {statusText}
@@ -134,19 +138,19 @@ export function DayJournal({ date }: Props) {
       <section className="macro-row">
         <div className="macro-chip">
           <strong>{Math.round(totals.calories)}</strong>
-          <span>/ {profile.dailyCalorieTarget} kcal</span>
+          <span>/ {profile.dailyCalorieTarget} {t("macroKcal")}</span>
         </div>
         <div className="macro-chip">
           <strong>{Math.round(totals.proteinG)}</strong>
-          <span>/ {profile.dailyProteinTargetG} g P</span>
+          <span>/ {profile.dailyProteinTargetG} {t("macroProt")}</span>
         </div>
         <div className="macro-chip">
           <strong>{Math.round(totals.carbsG)}</strong>
-          <span>g C</span>
+          <span>{t("macroCarbo")}</span>
         </div>
         <div className="macro-chip">
           <strong>{Math.round(totals.fatG)}</strong>
-          <span>g F</span>
+          <span>{t("macroFat")}</span>
         </div>
       </section>
 

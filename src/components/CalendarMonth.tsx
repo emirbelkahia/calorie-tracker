@@ -12,6 +12,7 @@ import { ensureProfile, getMonthTotals } from "@/lib/db";
 import type { DayColor, DayTotals, Profile } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SettingsGear } from "./SettingsGear";
 import { useLocale } from "./LocaleProvider";
 
 function statusLabel(
@@ -67,7 +68,7 @@ export function CalendarMonth() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex items-end justify-between gap-3 pt-2">
+      <header className="flex items-center justify-between gap-3 pt-2">
         <div>
           <p className="text-sm uppercase tracking-[0.14em] text-[var(--ink-muted)]">
             {t("brand")}
@@ -76,7 +77,7 @@ export function CalendarMonth() {
             {monthLabel}
           </h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             className="btn btn-ghost px-3"
@@ -93,6 +94,7 @@ export function CalendarMonth() {
           >
             ›
           </button>
+          <SettingsGear />
         </div>
       </header>
 
@@ -138,7 +140,7 @@ export function CalendarMonth() {
                 })}
               </h2>
               <span
-                className="rounded-full px-3 py-1 text-sm font-semibold text-white"
+                className="status-pill"
                 style={{ background: DAY_COLOR_HEX[todayColor] }}
               >
                 {statusLabel(todayColor, t)}
@@ -150,25 +152,25 @@ export function CalendarMonth() {
                 <strong>
                   {todayTotals ? Math.round(todayTotals.calories) : 0}
                 </strong>
-                <span>/ {profile.dailyCalorieTarget} kcal</span>
+                <span>/ {profile.dailyCalorieTarget} {t("macroKcal")}</span>
               </div>
               <div className="macro-chip">
                 <strong>
                   {todayTotals ? Math.round(todayTotals.proteinG) : 0}
                 </strong>
-                <span>/ {profile.dailyProteinTargetG} g P</span>
+                <span>/ {profile.dailyProteinTargetG} {t("macroProt")}</span>
               </div>
               <div className="macro-chip">
                 <strong>
                   {todayTotals ? Math.round(todayTotals.carbsG) : 0}
                 </strong>
-                <span>g C</span>
+                <span>{t("macroCarbo")}</span>
               </div>
               <div className="macro-chip">
                 <strong>
                   {todayTotals ? Math.round(todayTotals.fatG) : 0}
                 </strong>
-                <span>g F</span>
+                <span>{t("macroFat")}</span>
               </div>
             </div>
 

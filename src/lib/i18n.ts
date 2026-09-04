@@ -14,6 +14,10 @@ export const messages = {
     calendarHint:
       "Vert = dans la bande · Jaune/Rouge = sous ou sur l’objectif, ou protéines trop basses",
     backCalendar: "← Calendrier",
+    macroKcal: "kcal",
+    macroProt: "Prot",
+    macroCarbo: "Carbo",
+    macroFat: "Lip",
     kcalLeft: "{n} kcal restantes",
     kcalOver: "{n} kcal au-dessus",
     breakfast: "Petit-déjeuner",
@@ -122,6 +126,10 @@ export const messages = {
     calendarHint:
       "Green = on track · Yellow/Red = under or over calories, or protein too low",
     backCalendar: "← Calendar",
+    macroKcal: "kcal",
+    macroProt: "Prot",
+    macroCarbo: "Carbo",
+    macroFat: "Fat",
     kcalLeft: "{n} kcal left",
     kcalOver: "{n} kcal over",
     breakfast: "Breakfast",

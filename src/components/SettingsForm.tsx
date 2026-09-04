@@ -23,6 +23,7 @@ import {
 } from "@/lib/mistral-key";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
+import Link from "next/link";
 
 type FormState = Omit<
   Profile,
@@ -130,7 +131,10 @@ export function SettingsForm() {
   return (
     <div className="flex flex-col gap-5">
       <header className="pt-2">
-        <p className="text-sm uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+        <Link href="/" className="text-sm text-[var(--brand)]">
+          {t("backCalendar")}
+        </Link>
+        <p className="mt-2 text-sm uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           {t("settings")}
         </p>
         <h1 className="display mt-1 text-3xl text-[var(--brand)]">

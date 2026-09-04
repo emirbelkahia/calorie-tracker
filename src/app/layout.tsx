@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
-import { BottomNav } from "@/components/BottomNav";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import "./globals.css";
 
@@ -49,7 +48,6 @@ export default function RootLayout({
       <body>
         <LocaleProvider>
           <div className="app-shell">{children}</div>
-          <BottomNav />
         </LocaleProvider>
       </body>
     </html>
