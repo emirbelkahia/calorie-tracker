@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { OffFoodResult } from "@/lib/off";
 import { scaleMacros } from "@/lib/off";
 import {
+  deleteCustomFood,
   listCustomFoods,
   upsertCustomFood,
 } from "@/lib/db";
@@ -43,6 +44,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   const [selected, setSelected] = useState<OffFoodResult | null>(null);
   const [quantityG, setQuantityG] = useState(100);
   const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
+  const [pickedCustom, setPickedCustom] = useState<CustomFood | null>(null);
+  const [editingCustom, setEditingCustom] = useState<CustomFood | null>(null);
   const [manual, setManual] = useState({
     name: "",
     caloriesPer100g: 0,
@@ -62,6 +65,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     if (!open) return;
     listCustomFoods().then(setCustomFoods);
     setCanUseLabelPhoto(hasMistralApiKey());
+    setPickedCustom(null);
+    setEditingCustom(null);
     setLabelPreview(null);
     setLabelWarning(null);
     setLabelError(null);
@@ -211,6 +216,42 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     }
   }
 
+  async function saveCustomEdit() {
+    if (!editingCustom?.id || !editingCustom.name.trim()) return;
+    setBusy(true);
+    try {
+      await upsertCustomFood({
+        id: editingCustom.id,
+        name: editingCustom.name.trim(),
+        caloriesPer100g: editingCustom.caloriesPer100g,
+        proteinPer100g: editingCustom.proteinPer100g,
+        carbsPer100g: editingCustom.carbsPer100g,
+        fatPer100g: editingCustom.fatPer100g,
+      });
+      setCustomFoods(await listCustomFoods());
+      setEditingCustom(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeSavedFood() {
+    if (!editingCustom?.id) return;
+    const ok = window.confirm(
+      t("deleteSavedFoodConfirm", { name: editingCustom.name }),
+    );
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await deleteCustomFood(editingCustom.id);
+      setCustomFoods(await listCustomFoods());
+      setEditingCustom(null);
+      setPickedCustom(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -238,6 +279,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
               onClick={() => {
                 setTab(id);
                 setSelected(null);
+                setPickedCustom(null);
+                setEditingCustom(null);
               }}
             >
               {t(labelKey)}
@@ -505,7 +548,152 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
           </div>
         )}
 
-        {tab === "saved" && (
+        {tab === "saved" && editingCustom && (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="text-left text-sm text-[var(--brand)]"
+              onClick={() => setEditingCustom(null)}
+            >
+              {t("back")}
+            </button>
+            <h3 className="font-semibold">{t("editFoodTitle")}</h3>
+            <div className="field">
+              <label htmlFor="e-name">{t("name")}</label>
+              <input
+                id="e-name"
+                value={editingCustom.name}
+                onChange={(e) =>
+                  setEditingCustom({ ...editingCustom, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="field">
+                <label htmlFor="e-kcal">{t("kcalPer100")}</label>
+                <NumberField
+                  id="e-kcal"
+                  mode="decimal"
+                  min={0}
+                  value={editingCustom.caloriesPer100g}
+                  onValueChange={(caloriesPer100g) =>
+                    setEditingCustom({ ...editingCustom, caloriesPer100g })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="e-p">{t("proteinPer100")}</label>
+                <NumberField
+                  id="e-p"
+                  mode="decimal"
+                  min={0}
+                  value={editingCustom.proteinPer100g}
+                  onValueChange={(proteinPer100g) =>
+                    setEditingCustom({ ...editingCustom, proteinPer100g })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="e-c">{t("carbsPer100")}</label>
+                <NumberField
+                  id="e-c"
+                  mode="decimal"
+                  min={0}
+                  value={editingCustom.carbsPer100g}
+                  onValueChange={(carbsPer100g) =>
+                    setEditingCustom({ ...editingCustom, carbsPer100g })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="e-f">{t("fatPer100")}</label>
+                <NumberField
+                  id="e-f"
+                  mode="decimal"
+                  min={0}
+                  value={editingCustom.fatPer100g}
+                  onValueChange={(fatPer100g) =>
+                    setEditingCustom({ ...editingCustom, fatPer100g })
+                  }
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy || !editingCustom.name.trim()}
+              onClick={saveCustomEdit}
+            >
+              {t("save")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost text-[var(--red)]"
+              disabled={busy}
+              onClick={removeSavedFood}
+            >
+              {t("deleteSavedFood")}
+            </button>
+          </div>
+        )}
+
+        {tab === "saved" && !editingCustom && pickedCustom && (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="text-left text-sm text-[var(--brand)]"
+              onClick={() => setPickedCustom(null)}
+            >
+              {t("back")}
+            </button>
+            <h3 className="font-semibold">{pickedCustom.name}</h3>
+            <div className="field">
+              <label htmlFor="saved-qty">{t("quantityG")}</label>
+              <NumberField
+                id="saved-qty"
+                mode="decimal"
+                min={1}
+                value={quantityG}
+                onValueChange={setQuantityG}
+              />
+            </div>
+            <p className="text-sm text-[var(--ink-muted)]">
+              ≈ {scaleMacros(pickedCustom, quantityG).calories} kcal · P{" "}
+              {scaleMacros(pickedCustom, quantityG).proteinG}g
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy || quantityG <= 0}
+              onClick={() =>
+                confirmFromPer100(
+                  {
+                    name: pickedCustom.name,
+                    caloriesPer100g: pickedCustom.caloriesPer100g,
+                    proteinPer100g: pickedCustom.proteinPer100g,
+                    carbsPer100g: pickedCustom.carbsPer100g,
+                    fatPer100g: pickedCustom.fatPer100g,
+                  },
+                  quantityG,
+                )
+              }
+            >
+              {t("add")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setEditingCustom({ ...pickedCustom });
+                setPickedCustom(null);
+              }}
+            >
+              {t("editFood")}
+            </button>
+          </div>
+        )}
+
+        {tab === "saved" && !editingCustom && !pickedCustom && (
           <ul className="flex flex-col gap-2">
             {customFoods.length === 0 && (
               <p className="text-sm text-[var(--ink-muted)]">
@@ -513,27 +701,29 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
               </p>
             )}
             {customFoods.map((food) => (
-              <li key={food.id}>
+              <li
+                key={food.id}
+                className="flex items-stretch overflow-hidden rounded-xl border border-[var(--line)] bg-white"
+              >
                 <button
                   type="button"
-                  className="w-full rounded-xl border border-[var(--line)] bg-white p-3 text-left"
+                  className="min-w-0 flex-1 p-3 text-left"
                   onClick={() => {
-                    setSelected({
-                      id: `custom-${food.id}`,
-                      name: food.name,
-                      caloriesPer100g: food.caloriesPer100g,
-                      proteinPer100g: food.proteinPer100g,
-                      carbsPer100g: food.carbsPer100g,
-                      fatPer100g: food.fatPer100g,
-                    });
+                    setPickedCustom(food);
                     setQuantityG(100);
-                    setTab("search");
                   }}
                 >
                   <div className="font-semibold">{food.name}</div>
                   <div className="text-sm text-[var(--ink-muted)]">
                     {food.caloriesPer100g} kcal / 100g
                   </div>
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 px-3 text-sm text-[var(--brand)]"
+                  onClick={() => setEditingCustom({ ...food })}
+                >
+                  {t("editFood")}
                 </button>
               </li>
             ))}
