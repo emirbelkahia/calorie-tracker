@@ -21,7 +21,6 @@ export function BarcodeScanner({
   const videoRef = useRef<HTMLVideoElement>(null);
   const onDetectedRef = useRef(onDetected);
   onDetectedRef.current = onDetected;
-  const [typed, setTyped] = useState("");
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [decodingPhoto, setDecodingPhoto] = useState(false);
 
@@ -57,7 +56,7 @@ export function BarcodeScanner({
         onDetectedRef.current(code);
       });
     })().catch(() => {
-      /* live decode failed — photo / typed entry still work */
+      /* live decode failed — photo fallback still works */
     });
 
     return () => {
@@ -104,15 +103,6 @@ export function BarcodeScanner({
     }
   }
 
-  function submitTyped() {
-    const code = normalizeBarcode(typed);
-    if (!isPlausibleBarcode(code)) {
-      setPhotoError(t("barcodeInvalid"));
-      return;
-    }
-    onDetected(code);
-  }
-
   return (
     <div className="flex flex-col gap-3">
       {stream ? (
@@ -144,25 +134,6 @@ export function BarcodeScanner({
           {t("stopScan")}
         </button>
       </div>
-      <div className="field">
-        <label htmlFor="barcode-typed">{t("scanTypeLabel")}</label>
-        <input
-          id="barcode-typed"
-          inputMode="numeric"
-          autoComplete="off"
-          placeholder={t("scanTypePlaceholder")}
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-        />
-      </div>
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={!typed.trim()}
-        onClick={submitTyped}
-      >
-        {t("lookUp")}
-      </button>
       {photoError && <p className="text-sm text-[var(--red)]">{photoError}</p>}
     </div>
   );
