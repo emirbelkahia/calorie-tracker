@@ -12,6 +12,7 @@ import type { CustomFood } from "@/lib/types";
 import type { LabelNutrition } from "@/lib/mistral-label";
 import { compressImageForOcr } from "@/lib/image-compress";
 import { getMistralApiKey, hasMistralApiKey } from "@/lib/mistral-key";
+import { BarcodeScanner } from "./BarcodeScanner";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
 
@@ -60,6 +61,10 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   const [extracting, setExtracting] = useState(false);
   const [labelWarning, setLabelWarning] = useState<string | null>(null);
   const [labelError, setLabelError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanStream, setScanStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState(false);
+  const [barcodeMiss, setBarcodeMiss] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +75,17 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     setLabelPreview(null);
     setLabelWarning(null);
     setLabelError(null);
+    setBarcodeMiss(null);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    setScanStream((current) => {
+      current?.getTracks().forEach((track) => track.stop());
+      return null;
+    });
+    setScanning(false);
+    setCameraError(false);
   }, [open]);
 
   useEffect(() => {
@@ -252,6 +268,66 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     }
   }
 
+  function stopScan() {
+    setScanStream((current) => {
+      current?.getTracks().forEach((track) => track.stop());
+      return null;
+    });
+    setScanning(false);
+    setCameraError(false);
+  }
+
+  async function startScan() {
+    setError(null);
+    setBarcodeMiss(null);
+    setCameraError(false);
+    setScanning(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      setScanStream(stream);
+    } catch {
+      setCameraError(true);
+    }
+  }
+
+  async function lookupBarcode(code: string) {
+    stopScan();
+    setSearching(true);
+    setError(null);
+    setBarcodeMiss(null);
+    try {
+      const res = await fetch(
+        `/api/foods/barcode?code=${encodeURIComponent(code)}`,
+      );
+      const data = (await res.json()) as {
+        product?: OffFoodResult | null;
+        error?: string;
+      };
+      if (data.product) {
+        setSelected(data.product);
+        setQuantityG(100);
+        return;
+      }
+      if (!res.ok && data.error !== "invalid_barcode") {
+        setError(t("searchUnavailable"));
+        return;
+      }
+      setError(t("barcodeNotFound"));
+      setBarcodeMiss(code);
+    } catch {
+      setError(t("searchUnavailable"));
+    } finally {
+      setSearching(false);
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -277,6 +353,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
               type="button"
               className={`btn ${tab === id ? "btn-primary" : "btn-ghost"} text-sm`}
               onClick={() => {
+                stopScan();
                 setTab(id);
                 setSelected(null);
                 setPickedCustom(null);
@@ -288,8 +365,24 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
           ))}
         </div>
 
-        {tab === "search" && !selected && (
+        {tab === "search" && !selected && scanning && (
+          <BarcodeScanner
+            stream={scanStream}
+            cameraError={cameraError}
+            onDetected={lookupBarcode}
+            onStop={stopScan}
+          />
+        )}
+
+        {tab === "search" && !selected && !scanning && (
           <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={startScan}
+            >
+              {t("scanBarcode")}
+            </button>
             <div className="field">
               <label htmlFor="off-search">{t("searchLabel")}</label>
               <input
@@ -304,6 +397,20 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
               <p className="text-sm text-[var(--ink-muted)]">{t("searching")}</p>
             )}
             {error && <p className="text-sm text-[var(--red)]">{error}</p>}
+            {barcodeMiss && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setTab("manual");
+                  setManual((m) => ({ ...m, name: barcodeMiss }));
+                  setBarcodeMiss(null);
+                  setError(null);
+                }}
+              >
+                {t("createManual", { q: barcodeMiss })}
+              </button>
+            )}
             <ul className="flex flex-col gap-2">
               {results.map((item) => (
                 <li key={`${item.id}-${item.name}`}>

@@ -9,6 +9,20 @@ export interface OffFoodResult {
   imageUrl?: string;
 }
 
+const OFF_USER_AGENT =
+  "CalorieTracker/0.1 (https://github.com/emirbelkahia/calorie-tracker)";
+
+const OFF_PRODUCT_FIELDS =
+  "code,product_name,product_name_fr,brands,image_front_small_url,nutriments";
+
+export function normalizeBarcode(raw: string): string {
+  return raw.replace(/\D/g, "");
+}
+
+export function isPlausibleBarcode(code: string): boolean {
+  return /^\d{8,14}$/.test(code);
+}
+
 interface OffProduct {
   code?: string;
   product_name?: string;
@@ -111,6 +125,7 @@ async function fetchOffSearch(
     signal,
     headers: {
       Accept: "application/json",
+      "User-Agent": OFF_USER_AGENT,
     },
     next: { revalidate: 0 },
   });
@@ -156,4 +171,52 @@ export async function searchOpenFoodFacts(
   throw lastError instanceof Error
     ? lastError
     : new Error("Recherche Open Food Facts indisponible");
+}
+
+/** Product lookup by EAN/UPC — more reliable than text search. */
+export async function getOpenFoodFactsProduct(
+  barcode: string,
+  signal?: AbortSignal,
+): Promise<OffFoodResult | null> {
+  const code = normalizeBarcode(barcode);
+  if (!isPlausibleBarcode(code)) return null;
+
+  const urls = [
+    `https://world.openfoodfacts.org/api/v2/product/${code}`,
+    `https://fr.openfoodfacts.org/api/v2/product/${code}`,
+  ];
+
+  let networkError = false;
+  for (const base of urls) {
+    try {
+      const res = await fetch(`${base}?fields=${OFF_PRODUCT_FIELDS}`, {
+        signal,
+        headers: {
+          Accept: "application/json",
+          "User-Agent": OFF_USER_AGENT,
+        },
+        next: { revalidate: 0 },
+      });
+      if (res.status === 404) continue;
+      if (!res.ok) {
+        networkError = true;
+        continue;
+      }
+      const data = (await res.json()) as {
+        status?: number;
+        product?: OffProduct;
+      };
+      if (data.status !== 1 || !data.product) continue;
+      const mapped = mapOffProduct(data.product);
+      if (mapped) return mapped;
+    } catch (err) {
+      if ((err as Error).name === "AbortError") throw err;
+      networkError = true;
+    }
+  }
+
+  if (networkError) {
+    throw new Error("Fiche Open Food Facts indisponible");
+  }
+  return null;
 }
