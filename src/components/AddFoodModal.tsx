@@ -12,7 +12,7 @@ import type { CustomFood } from "@/lib/types";
 import type { LabelNutrition } from "@/lib/mistral-label";
 import { compressImageForOcr } from "@/lib/image-compress";
 import { getMistralApiKey, hasMistralApiKey } from "@/lib/mistral-key";
-import { BarcodeScanner } from "./BarcodeScanner";
+import { BarcodeIcon, BarcodeScanner } from "./BarcodeScanner";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
 
@@ -65,6 +65,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   const [scanStream, setScanStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState(false);
   const [barcodeMiss, setBarcodeMiss] = useState<string | null>(null);
+  const [scanConfirmed, setScanConfirmed] = useState(false);
+  const [fromScan, setFromScan] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -76,6 +78,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     setLabelWarning(null);
     setLabelError(null);
     setBarcodeMiss(null);
+    setFromScan(false);
   }, [open]);
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     });
     setScanning(false);
     setCameraError(false);
+    setScanConfirmed(false);
   }, [open]);
 
   useEffect(() => {
@@ -275,6 +279,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     });
     setScanning(false);
     setCameraError(false);
+    setScanConfirmed(false);
   }
 
   async function startScan() {
@@ -298,8 +303,12 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   }
 
   async function lookupBarcode(code: string) {
-    stopScan();
-    setSearching(true);
+    setScanConfirmed(true);
+    try {
+      navigator.vibrate?.(40);
+    } catch {
+      /* ignore */
+    }
     setError(null);
     setBarcodeMiss(null);
     try {
@@ -311,10 +320,14 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
         error?: string;
       };
       if (data.product) {
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        setFromScan(true);
         setSelected(data.product);
         setQuantityG(100);
+        stopScan();
         return;
       }
+      stopScan();
       if (!res.ok && data.error !== "invalid_barcode") {
         setError(t("searchUnavailable"));
         return;
@@ -322,9 +335,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
       setError(t("barcodeNotFound"));
       setBarcodeMiss(code);
     } catch {
+      stopScan();
       setError(t("searchUnavailable"));
-    } finally {
-      setSearching(false);
     }
   }
 
@@ -356,6 +368,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                 stopScan();
                 setTab(id);
                 setSelected(null);
+                setFromScan(false);
                 setPickedCustom(null);
                 setEditingCustom(null);
               }}
@@ -369,6 +382,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
           <BarcodeScanner
             stream={scanStream}
             cameraError={cameraError}
+            confirmed={scanConfirmed}
             onDetected={lookupBarcode}
             onStop={stopScan}
           />
@@ -378,9 +392,10 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary flex items-center justify-center gap-2"
               onClick={startScan}
             >
+              <BarcodeIcon />
               {t("scanBarcode")}
             </button>
             <div className="field">
@@ -418,6 +433,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                     type="button"
                     className="w-full rounded-xl border border-[var(--line)] bg-white p-3 text-left"
                     onClick={() => {
+                      setFromScan(false);
                       setSelected(item);
                       setQuantityG(100);
                     }}
@@ -452,10 +468,40 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
             <button
               type="button"
               className="text-left text-sm text-[var(--brand)]"
-              onClick={() => setSelected(null)}
+              onClick={() => {
+                setSelected(null);
+                setFromScan(false);
+              }}
             >
               {t("back")}
             </button>
+            {fromScan && (
+              <p className="scan-ok">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  />
+                  <path
+                    d="M7.5 12.5 10.4 15.5 16.5 8.5"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {t("scanHit")}
+              </p>
+            )}
             <h3 className="font-semibold">{selected.name}</h3>
             <div className="field">
               <label htmlFor="qty">{t("quantityG")}</label>

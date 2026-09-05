@@ -7,13 +7,35 @@ import { useLocale } from "./LocaleProvider";
 interface Props {
   stream: MediaStream | null;
   cameraError: boolean;
+  confirmed: boolean;
   onDetected: (code: string) => void;
   onStop: () => void;
+}
+
+export function BarcodeIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 18 18"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="1" y="3" width="1.5" height="12" rx="0.4" />
+      <rect x="4" y="3" width="1" height="12" rx="0.4" />
+      <rect x="6.2" y="3" width="2" height="12" rx="0.4" />
+      <rect x="9.2" y="3" width="1" height="12" rx="0.4" />
+      <rect x="11.2" y="3" width="1.5" height="12" rx="0.4" />
+      <rect x="13.5" y="3" width="1" height="12" rx="0.4" />
+      <rect x="15.5" y="3" width="1.5" height="12" rx="0.4" />
+    </svg>
+  );
 }
 
 export function BarcodeScanner({
   stream,
   cameraError,
+  confirmed,
   onDetected,
   onStop,
 }: Props) {
@@ -25,7 +47,7 @@ export function BarcodeScanner({
   const [decodingPhoto, setDecodingPhoto] = useState(false);
 
   useEffect(() => {
-    if (!stream || !videoRef.current) return;
+    if (!stream || !videoRef.current || confirmed) return;
     const video = videoRef.current;
     video.setAttribute("playsinline", "true");
     video.muted = true;
@@ -63,10 +85,10 @@ export function BarcodeScanner({
       cancelled = true;
       controls?.stop();
     };
-  }, [stream]);
+  }, [stream, confirmed]);
 
   async function onPickPhoto(file: File | null) {
-    if (!file) return;
+    if (!file || confirmed) return;
     setPhotoError(null);
     setDecodingPhoto(true);
     try {
@@ -106,18 +128,62 @@ export function BarcodeScanner({
   return (
     <div className="flex flex-col gap-3">
       {stream ? (
-        <video
-          ref={videoRef}
-          className="barcode-video"
-          playsInline
-          muted
-          autoPlay
-        />
+        <div className="barcode-preview">
+          <video
+            ref={videoRef}
+            className="barcode-video"
+            playsInline
+            muted
+            autoPlay
+          />
+          {confirmed && (
+            <div className="barcode-hit">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M7.5 12.5 10.4 15.5 16.5 8.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {t("scanHit")}
+            </div>
+          )}
+        </div>
+      ) : confirmed ? (
+        <div className="barcode-preview barcode-preview-still">
+          <div className="barcode-hit">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              />
+              <path
+                d="M7.5 12.5 10.4 15.5 16.5 8.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {t("scanHit")}
+          </div>
+        </div>
       ) : null}
       {cameraError && (
         <p className="text-sm text-[var(--ink-muted)]">{t("cameraDenied")}</p>
       )}
-      <p className="text-sm text-[var(--ink-muted)]">{t("scanHint")}</p>
       <div className="flex gap-2">
         <label className="btn btn-secondary flex-1 cursor-pointer text-sm">
           {decodingPhoto ? t("scanningBarcode") : t("scanPhoto")}
@@ -126,11 +192,16 @@ export function BarcodeScanner({
             accept="image/*"
             capture="environment"
             className="hidden"
-            disabled={decodingPhoto}
+            disabled={decodingPhoto || confirmed}
             onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
           />
         </label>
-        <button type="button" className="btn btn-ghost flex-1" onClick={onStop}>
+        <button
+          type="button"
+          className="btn btn-ghost flex-1"
+          disabled={confirmed}
+          onClick={onStop}
+        >
           {t("stopScan")}
         </button>
       </div>
