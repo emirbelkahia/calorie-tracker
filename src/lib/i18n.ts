@@ -52,6 +52,11 @@ export const messages = {
     fatPer100: "Lipides / 100g",
     keepInFoods: "Garder dans mes aliments",
     noSavedFoods: "Aucun aliment sauvegardé pour l’instant.",
+    editFood: "Modifier",
+    editFoodTitle: "Modifier l’aliment",
+    deleteSavedFood: "Retirer de mes aliments",
+    deleteSavedFoodConfirm:
+      "Retirer « {name} » de tes aliments ? Les repas déjà loggés ne changent pas.",
     settings: "Réglages",
     profile: "Profil",
     settingsIntro: "Mifflin–St Jeor + objectif kcal et protéines.",
@@ -164,6 +169,11 @@ export const messages = {
     fatPer100: "Fat / 100g",
     keepInFoods: "Save to my foods",
     noSavedFoods: "No saved foods yet.",
+    editFood: "Edit",
+    editFoodTitle: "Edit food",
+    deleteSavedFood: "Remove from my foods",
+    deleteSavedFoodConfirm:
+      "Remove “{name}” from your foods? Meals already logged stay as they are.",
     settings: "Settings",
     profile: "Profile",
     settingsIntro: "Mifflin–St Jeor + calorie goal and protein.",

@@ -209,6 +209,10 @@ export async function listCustomFoods(): Promise<CustomFood[]> {
   return db.customFoods.orderBy("name").toArray();
 }
 
+export async function deleteCustomFood(id: number): Promise<void> {
+  await db.customFoods.delete(id);
+}
+
 export async function exportBackup(): Promise<BackupPayload> {
   const [profile, meals, foodEntries, customFoods] = await Promise.all([
     db.profile.get(1),
