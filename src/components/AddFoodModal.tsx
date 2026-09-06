@@ -67,6 +67,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   const [barcodeMiss, setBarcodeMiss] = useState<string | null>(null);
   const [scanConfirmed, setScanConfirmed] = useState(false);
   const [fromScan, setFromScan] = useState(false);
+  const [saveSelectedAsCustom, setSaveSelectedAsCustom] = useState(true);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +80,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     setLabelError(null);
     setBarcodeMiss(null);
     setFromScan(false);
+    setSaveSelectedAsCustom(true);
   }, [open]);
 
   useEffect(() => {
@@ -324,6 +326,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
         setFromScan(true);
         setSelected(data.product);
         setQuantityG(100);
+        setSaveSelectedAsCustom(true);
         stopScan();
         return;
       }
@@ -436,6 +439,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                       setFromScan(false);
                       setSelected(item);
                       setQuantityG(100);
+                      setSaveSelectedAsCustom(true);
                     }}
                   >
                     <div className="font-semibold">{item.name}</div>
@@ -517,6 +521,14 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
               ≈ {scaleMacros(selected, quantityG).calories} kcal · P{" "}
               {scaleMacros(selected, quantityG).proteinG}g
             </p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={saveSelectedAsCustom}
+                onChange={(e) => setSaveSelectedAsCustom(e.target.checked)}
+              />
+              {t("keepInFoods")}
+            </label>
             <button
               type="button"
               className="btn btn-primary"
@@ -532,6 +544,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                     offId: selected.id,
                   },
                   quantityG,
+                  saveSelectedAsCustom,
                 )
               }
             >
