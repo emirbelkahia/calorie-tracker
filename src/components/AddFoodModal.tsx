@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OffFoodResult } from "@/lib/off";
 import { scaleMacros } from "@/lib/off";
 import {
@@ -15,6 +15,7 @@ import { getMistralApiKey, hasMistralApiKey } from "@/lib/mistral-key";
 import { BarcodeIcon, BarcodeScanner } from "./BarcodeScanner";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export interface FoodDraft {
   name: string;
@@ -68,6 +69,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   const [scanConfirmed, setScanConfirmed] = useState(false);
   const [fromScan, setFromScan] = useState(false);
   const [saveSelectedAsCustom, setSaveSelectedAsCustom] = useState(true);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
@@ -92,6 +95,17 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     setScanning(false);
     setCameraError(false);
     setScanConfirmed(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const node = backdropRef.current;
+    if (!node) return;
+    const onMove = (event: TouchEvent) => {
+      if (event.target === node) event.preventDefault();
+    };
+    node.addEventListener("touchmove", onMove, { passive: false });
+    return () => node.removeEventListener("touchmove", onMove);
   }, [open]);
 
   useEffect(() => {
@@ -346,7 +360,12 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
+    <div
+      ref={backdropRef}
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="modal-sheet">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="display text-2xl">{t("addFoodTitle")}</h2>

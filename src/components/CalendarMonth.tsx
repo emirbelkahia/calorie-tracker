@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { SettingsGear } from "./SettingsGear";
 import { MacroRow } from "./MacroRow";
 import { useLocale } from "./LocaleProvider";
+import { useAppClock } from "@/lib/use-app-clock";
 
 function statusLabel(
   color: DayColor,
@@ -36,6 +37,8 @@ export function CalendarMonth() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [totals, setTotals] = useState<Record<string, DayTotals>>({});
   const [ready, setReady] = useState(false);
+  const now = useAppClock();
+  const today = toDateKey(now);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,10 +57,9 @@ export function CalendarMonth() {
     return () => {
       cancelled = true;
     };
-  }, [cursor]);
+  }, [cursor, today]);
 
   const cells = monthGrid(cursor.getFullYear(), cursor.getMonth());
-  const today = toDateKey(new Date());
   const todayTotals = totals[today];
   const todayColor: DayColor = dayColor(todayTotals, profile);
   const dateLocale = locale === "en" ? "en-US" : "fr-FR";
