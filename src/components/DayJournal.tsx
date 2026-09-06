@@ -19,6 +19,8 @@ import { AddFoodModal, type FoodDraft } from "./AddFoodModal";
 import { MacroRow } from "./MacroRow";
 import { SettingsGear } from "./SettingsGear";
 import { useLocale } from "./LocaleProvider";
+import { mealAutoCollapsed } from "@/lib/meal-collapse";
+import { useAppClock } from "@/lib/use-app-clock";
 
 interface Props {
   date: string;
@@ -41,6 +43,10 @@ export function DayJournal({ date }: Props) {
   const [activeMealId, setActiveMealId] = useState<number | null>(null);
   const [snackName, setSnackName] = useState("");
   const [showSnackInput, setShowSnackInput] = useState(false);
+  const [expandedOverride, setExpandedOverride] = useState<
+    Record<number, boolean>
+  >({});
+  const now = useAppClock();
 
   const reload = useCallback(async () => {
     const p = await ensureProfile();
@@ -56,6 +62,10 @@ export function DayJournal({ date }: Props) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    setExpandedOverride({});
+  }, [date]);
 
   const entriesByMeal = useMemo(() => {
     const map = new Map<number, FoodEntry[]>();
@@ -153,16 +163,42 @@ export function DayJournal({ date }: Props) {
       {meals.map((meal) => {
         const mealEntries = entriesByMeal.get(meal.id!) ?? [];
         const mealKcal = mealEntries.reduce((s, e) => s + e.calories, 0);
+        const autoCollapsed = mealAutoCollapsed(date, meal.type, now);
+        const expanded =
+          meal.id != null && meal.id in expandedOverride
+            ? expandedOverride[meal.id]
+            : !autoCollapsed;
+
+        function setExpanded(open: boolean) {
+          if (meal.id == null) return;
+          setExpandedOverride((prev) => ({ ...prev, [meal.id!]: open }));
+        }
+
         return (
           <section key={meal.id} className="panel p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="display text-xl">{mealTitle(meal, t)}</h2>
-                <p className="text-sm text-[var(--ink-muted)]">
-                  {Math.round(mealKcal)} kcal
-                </p>
-              </div>
-              <div className="flex gap-2">
+            <div className="mb-0 flex items-start justify-between gap-3">
+              <button
+                type="button"
+                className="meal-toggle min-w-0 flex-1 text-left"
+                aria-expanded={expanded}
+                aria-label={t("mealToggle")}
+                onClick={() => setExpanded(!expanded)}
+              >
+                <span
+                  className="meal-chevron"
+                  data-open={expanded ? "true" : "false"}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0">
+                  <span className="display block text-xl">
+                    {mealTitle(meal, t)}
+                  </span>
+                  <span className="text-sm text-[var(--ink-muted)]">
+                    {Math.round(mealKcal)} kcal
+                  </span>
+                </span>
+              </button>
+              <div className="flex shrink-0 gap-2">
                 {meal.type === "snack" && (
                   <button
                     type="button"
@@ -179,44 +215,53 @@ export function DayJournal({ date }: Props) {
                 <button
                   type="button"
                   className="btn btn-secondary text-sm"
-                  onClick={() => setActiveMealId(meal.id ?? null)}
+                  onClick={() => {
+                    setExpanded(true);
+                    setActiveMealId(meal.id ?? null);
+                  }}
                 >
                   {t("addFood")}
                 </button>
               </div>
             </div>
 
-            {mealEntries.length === 0 ? (
-              <p className="text-sm text-[var(--ink-muted)]">{t("noFood")}</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {mealEntries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-start justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-                  >
-                    <div>
-                      <div className="font-medium">{entry.name}</div>
-                      <div className="text-sm text-[var(--ink-muted)]">
-                        {entry.quantityG}g · {Math.round(entry.calories)} kcal ·
-                        P {entry.proteinG}g · C {entry.carbsG}g · F{" "}
-                        {entry.fatG}g
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="text-sm text-[var(--red)]"
-                      onClick={async () => {
-                        if (!entry.id) return;
-                        await deleteFoodEntry(entry.id);
-                        await reload();
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            {expanded && (
+              <div className="mt-3">
+                {mealEntries.length === 0 ? (
+                  <p className="text-sm text-[var(--ink-muted)]">
+                    {t("noFood")}
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {mealEntries.map((entry) => (
+                      <li
+                        key={entry.id}
+                        className="flex items-start justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                      >
+                        <div>
+                          <div className="font-medium">{entry.name}</div>
+                          <div className="text-sm text-[var(--ink-muted)]">
+                            {entry.quantityG}g · {Math.round(entry.calories)}{" "}
+                            kcal · P {entry.proteinG}g · C {entry.carbsG}g · F{" "}
+                            {entry.fatG}g
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-sm text-[var(--red)]"
+                          onClick={async () => {
+                            if (!entry.id) return;
+                            await deleteFoodEntry(entry.id);
+                            await reload();
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </section>
         );
