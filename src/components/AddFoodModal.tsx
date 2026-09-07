@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { OffFoodResult } from "@/lib/off";
 import { scaleMacros } from "@/lib/off";
 import {
+  isStapleId,
+  mergeStaplesAndOff,
+  searchStaples,
+} from "@/lib/staples";
+import {
   deleteCustomFood,
   listCustomFoods,
   upsertCustomFood,
@@ -37,7 +42,7 @@ interface Props {
 }
 
 export function AddFoodModal({ open, onClose, onAdd }: Props) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [tab, setTab] = useState<Tab>("search");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<OffFoodResult[]>([]);
@@ -111,8 +116,14 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   useEffect(() => {
     if (!open || tab !== "search") return;
     const q = query.trim();
-    if (q.length < 3) {
+    const staples = searchStaples(q, locale);
+    if (q.length < 2) {
       setResults([]);
+      setSearching(false);
+      return;
+    }
+    setResults(staples);
+    if (q.length < 3) {
       setSearching(false);
       return;
     }
@@ -130,7 +141,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
           products: OffFoodResult[];
           error?: string;
         };
-        setResults(data.products ?? []);
+        setResults(mergeStaplesAndOff(staples, data.products ?? []));
         if (data.error) setError(t("searchUnavailable"));
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
@@ -144,7 +155,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, open, tab, t]);
+  }, [query, open, tab, t, locale]);
 
   async function confirmFromPer100(
     source: {
@@ -458,7 +469,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                       setFromScan(false);
                       setSelected(item);
                       setQuantityG(100);
-                      setSaveSelectedAsCustom(true);
+                      setSaveSelectedAsCustom(!isStapleId(item.id));
                     }}
                   >
                     <div className="font-semibold">{item.name}</div>
@@ -560,7 +571,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                     proteinPer100g: selected.proteinPer100g,
                     carbsPer100g: selected.carbsPer100g,
                     fatPer100g: selected.fatPer100g,
-                    offId: selected.id,
+                    offId: isStapleId(selected.id) ? undefined : selected.id,
                   },
                   quantityG,
                   saveSelectedAsCustom,

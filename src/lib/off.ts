@@ -135,16 +135,27 @@ async function fetchOffSearch(
   }
 
   const data = (await res.json()) as { products?: OffProduct[] };
-  return (data.products ?? [])
-    .map(mapOffProduct)
-    .filter((p): p is OffFoodResult => Boolean(p))
-    .filter(
-      (p) =>
-        p.caloriesPer100g > 0 ||
-        p.proteinPer100g > 0 ||
-        p.carbsPer100g > 0 ||
-        p.fatPer100g > 0,
-    );
+  return preferUnbranded(
+    (data.products ?? [])
+      .map(mapOffProduct)
+      .filter((p): p is OffFoodResult => Boolean(p))
+      .filter(
+        (p) =>
+          p.caloriesPer100g > 0 ||
+          p.proteinPer100g > 0 ||
+          p.carbsPer100g > 0 ||
+          p.fatPer100g > 0,
+      ),
+  );
+}
+
+/** Generic / no-brand products first; branded items stay below. */
+export function preferUnbranded(products: OffFoodResult[]): OffFoodResult[] {
+  return [...products].sort((a, b) => {
+    const aBrand = a.brand ? 1 : 0;
+    const bBrand = b.brand ? 1 : 0;
+    return aBrand - bBrand;
+  });
 }
 
 export async function searchOpenFoodFacts(
