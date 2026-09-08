@@ -27,6 +27,7 @@ import {
   setMistralApiKey,
 } from "@/lib/mistral-key";
 import { useLocale } from "./LocaleProvider";
+import { HintTerm } from "./HintTerm";
 import { NumberField } from "./NumberField";
 import Link from "next/link";
 
@@ -328,8 +329,10 @@ export function SettingsForm() {
         </div>
 
         <div className="rounded-xl bg-[var(--brand-soft)] p-4">
-          <p className="text-sm text-[var(--ink-muted)]">
-            {t("bmrTdee", { bmr: preview.bmr, tdee: preview.tdee })}
+          <p className="hint-term-row text-sm text-[var(--ink-muted)]">
+            <HintTerm term="BMR" value={preview.bmr} hint={t("bmrHint")} />
+            <span aria-hidden="true"> · </span>
+            <HintTerm term="TDEE" value={preview.tdee} hint={t("tdeeHint")} />
           </p>
           <p className="display mt-1 text-2xl text-[var(--brand)]">
             {t("dailyAllow", { n: preview.dailyCalorieTarget })}

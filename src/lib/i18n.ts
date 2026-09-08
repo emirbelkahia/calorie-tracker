@@ -84,6 +84,10 @@ export const messages = {
     gapPercent: "Écart (%)",
     proteinPerKg: "Protéines (g/kg) — conseillé 1.6–2.0",
     bmrTdee: "BMR {bmr} · TDEE {tdee}",
+    bmrHint:
+      "Métabolisme de base : kcal au repos (cœur, cerveau, chaleur). Formule Mifflin–St Jeor : 10 × poids (kg) + 6,25 × taille (cm) − 5 × âge, puis +5 (homme) ou −161 (femme).",
+    tdeeHint:
+      "Dépense quotidienne estimée : BMR × ton niveau d’activité (1,2 sédentaire → 1,9 très actif). Ton objectif kcal part de ce chiffre, avec le déficit ou le surplus.",
     dailyAllow: "Tu as droit à {n} kcal / jour",
     proteinTarget: "Cible protéines : {n} g / jour",
     carbsPerDay: "Glucides (g / jour)",
@@ -218,6 +222,10 @@ export const messages = {
     gapPercent: "Gap (%)",
     proteinPerKg: "Protein (g/kg) — recommended 1.6–2.0",
     bmrTdee: "BMR {bmr} · TDEE {tdee}",
+    bmrHint:
+      "Basal metabolic rate: calories at rest (heart, brain, heat). Mifflin–St Jeor: 10 × weight (kg) + 6.25 × height (cm) − 5 × age, then +5 (male) or −161 (female).",
+    tdeeHint:
+      "Estimated daily burn: BMR × your activity level (1.2 sedentary → 1.9 very active). Your calorie goal starts from this, plus the deficit or surplus.",
     dailyAllow: "Your daily allowance: {n} kcal",
     proteinTarget: "Protein target: {n} g / day",
     carbsPerDay: "Carbs (g / day)",
