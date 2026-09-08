@@ -49,6 +49,51 @@ export function calculateProteinTargetG(
   return weightKg * proteinGPerKg;
 }
 
+/** Anses 2016: fat 35–40% of energy; use the 35% floor. Carbs take the rest. */
+const FAT_ENERGY_SHARE = 0.35;
+
+export function deriveCarbFatTargets(
+  calorieTarget: number,
+  proteinTargetG: number,
+): { dailyCarbsTargetG: number; dailyFatTargetG: number } {
+  const calories = Math.max(0, calorieTarget);
+  const proteinKcal = Math.max(0, proteinTargetG) * 4;
+  let fatKcal = FAT_ENERGY_SHARE * calories;
+  if (proteinKcal + fatKcal > calories) {
+    fatKcal = Math.max(0, calories - proteinKcal);
+  }
+  const carbKcal = Math.max(0, calories - proteinKcal - fatKcal);
+  return {
+    dailyFatTargetG: Math.round(fatKcal / 9),
+    dailyCarbsTargetG: Math.round(carbKcal / 4),
+  };
+}
+
+export function effectiveCarbFatTargets(
+  profile: Pick<
+    Profile,
+    | "dailyCalorieTarget"
+    | "dailyProteinTargetG"
+    | "dailyCarbsTargetG"
+    | "dailyFatTargetG"
+  >,
+): { dailyCarbsTargetG: number; dailyFatTargetG: number } {
+  const auto = deriveCarbFatTargets(
+    profile.dailyCalorieTarget,
+    profile.dailyProteinTargetG,
+  );
+  return {
+    dailyCarbsTargetG:
+      typeof profile.dailyCarbsTargetG === "number"
+        ? profile.dailyCarbsTargetG
+        : auto.dailyCarbsTargetG,
+    dailyFatTargetG:
+      typeof profile.dailyFatTargetG === "number"
+        ? profile.dailyFatTargetG
+        : auto.dailyFatTargetG,
+  };
+}
+
 export function deriveTargets(
   input: Pick<
     Profile,

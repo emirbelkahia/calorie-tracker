@@ -27,6 +27,10 @@ export interface Profile {
   proteinGPerKg: number;
   dailyCalorieTarget: number;
   dailyProteinTargetG: number;
+  /** Manual carb quota (g/day). Absent = Anses-derived from kcal + protein. */
+  dailyCarbsTargetG?: number;
+  /** Manual fat quota (g/day). Absent = Anses-derived from kcal + protein. */
+  dailyFatTargetG?: number;
 }
 
 export interface Meal {

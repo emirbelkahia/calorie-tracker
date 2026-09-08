@@ -383,3 +383,51 @@ textarea {
   font-size: 0.7rem;
   line-height: 1.2;
 }
+
+.hint-term-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin-bottom: 2px;
+}
+
+.hint-term-sep {
+  padding: 4px 0 8px;
+  color: var(--ink-muted);
+}
+
+.hint-term-trigger {
+  margin: 0;
+  padding: 4px 2px 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+}
+
+.hint-term-bubble {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  top: calc(100% + 8px);
+  width: min(280px, calc(100vw - 64px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+  font-weight: 400;
+}
+
+.hint-term:last-child .hint-term-bubble {
+  left: auto;
+  right: 0;
+}

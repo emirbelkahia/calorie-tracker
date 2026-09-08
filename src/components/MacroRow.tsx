@@ -1,6 +1,7 @@
 "use client";
 
 import { calorieStatus, proteinStatus } from "@/lib/day-status";
+import { effectiveCarbFatTargets } from "@/lib/nutrition";
 import type { DayColor, Profile } from "@/lib/types";
 
 interface MacroChipProps {
@@ -61,6 +62,10 @@ export function MacroRow({
     profile.weightKg,
     profile.proteinGPerKg,
   );
+  const { dailyCarbsTargetG, dailyFatTargetG } =
+    effectiveCarbFatTargets(profile);
+  const carbTone = calorieStatus(carbsG, dailyCarbsTargetG);
+  const fatTone = calorieStatus(fatG, dailyFatTargetG);
 
   return (
     <section className="macro-row">
@@ -76,8 +81,18 @@ export function MacroRow({
         label={labels.prot}
         tone={proTone}
       />
-      <MacroChip value={carbsG} label={labels.carbo} />
-      <MacroChip value={fatG} label={labels.fat} />
+      <MacroChip
+        value={carbsG}
+        target={dailyCarbsTargetG}
+        label={labels.carbo}
+        tone={carbTone}
+      />
+      <MacroChip
+        value={fatG}
+        target={dailyFatTargetG}
+        label={labels.fat}
+        tone={fatTone}
+      />
     </section>
   );
 }
