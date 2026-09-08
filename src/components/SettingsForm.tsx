@@ -331,10 +331,12 @@ export function SettingsForm() {
         <div className="rounded-xl bg-[var(--brand-soft)] p-4">
           <p className="hint-term-row text-sm text-[var(--ink-muted)]">
             <HintTerm term="BMR" value={preview.bmr} hint={t("bmrHint")} />
-            <span aria-hidden="true"> · </span>
+            <span className="hint-term-sep" aria-hidden="true">
+              ·
+            </span>
             <HintTerm term="TDEE" value={preview.tdee} hint={t("tdeeHint")} />
           </p>
-          <p className="display mt-1 text-2xl text-[var(--brand)]">
+          <p className="display mt-3 text-2xl text-[var(--brand)]">
             {t("dailyAllow", { n: preview.dailyCalorieTarget })}
           </p>
           <p className="mt-1 text-[var(--ink-muted)]">
