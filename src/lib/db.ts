@@ -46,6 +46,12 @@ export async function saveProfile(
   input: Omit<Profile, "id"> & { id?: 1 },
 ): Promise<Profile> {
   const profile: Profile = { ...input, id: 1 };
+  if (typeof profile.dailyCarbsTargetG !== "number") {
+    delete profile.dailyCarbsTargetG;
+  }
+  if (typeof profile.dailyFatTargetG !== "number") {
+    delete profile.dailyFatTargetG;
+  }
   await db.profile.put(profile);
   return profile;
 }

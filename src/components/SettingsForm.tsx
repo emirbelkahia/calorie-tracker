@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { calculateBmr, calculateTdee, deriveTargets } from "@/lib/nutrition";
+import {
+  calculateBmr,
+  calculateTdee,
+  deriveTargets,
+  effectiveCarbFatTargets,
+} from "@/lib/nutrition";
 import {
   ensureProfile,
   exportBackup,
@@ -57,6 +62,8 @@ export function SettingsForm() {
         goalMode: p.goalMode,
         goalPercent: p.goalPercent,
         proteinGPerKg: p.proteinGPerKg,
+        dailyCarbsTargetG: p.dailyCarbsTargetG,
+        dailyFatTargetG: p.dailyFatTargetG,
       });
     });
     setHasStoredKey(Boolean(getMistralApiKey()));
@@ -67,10 +74,16 @@ export function SettingsForm() {
     const bmr = calculateBmr(form.sex, form.weightKg, form.heightCm, form.age);
     const tdee = calculateTdee(bmr, form.activity);
     const targets = deriveTargets(form);
+    const carbFat = effectiveCarbFatTargets({
+      ...targets,
+      dailyCarbsTargetG: form.dailyCarbsTargetG,
+      dailyFatTargetG: form.dailyFatTargetG,
+    });
     return {
       bmr: Math.round(bmr),
       tdee: Math.round(tdee),
       ...targets,
+      ...carbFat,
     };
   }, [form]);
 
@@ -81,6 +94,8 @@ export function SettingsForm() {
       ...form,
       dailyCalorieTarget: preview.dailyCalorieTarget,
       dailyProteinTargetG: preview.dailyProteinTargetG,
+      dailyCarbsTargetG: form.dailyCarbsTargetG,
+      dailyFatTargetG: form.dailyFatTargetG,
     });
     setSaved(true);
     setMessage(t("settingsSaved"));
@@ -117,6 +132,8 @@ export function SettingsForm() {
         goalMode: p.goalMode,
         goalPercent: p.goalPercent,
         proteinGPerKg: p.proteinGPerKg,
+        dailyCarbsTargetG: p.dailyCarbsTargetG,
+        dailyFatTargetG: p.dailyFatTargetG,
       });
       setMessage(t("backupImported"));
     } catch {
@@ -258,6 +275,58 @@ export function SettingsForm() {
           />
         </div>
 
+        <p className="text-sm text-[var(--ink-muted)]">{t("carbFatHint")}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="field">
+            <label htmlFor="carbs">{t("carbsPerDay")}</label>
+            <NumberField
+              id="carbs"
+              mode="numeric"
+              min={0}
+              max={800}
+              value={preview.dailyCarbsTargetG}
+              onValueChange={(dailyCarbsTargetG) =>
+                setForm({ ...form, dailyCarbsTargetG })
+              }
+            />
+            {typeof form.dailyCarbsTargetG === "number" && (
+              <button
+                type="button"
+                className="mt-1 text-left text-sm text-[var(--brand)]"
+                onClick={() =>
+                  setForm({ ...form, dailyCarbsTargetG: undefined })
+                }
+              >
+                {t("useSuggested")}
+              </button>
+            )}
+          </div>
+          <div className="field">
+            <label htmlFor="fat">{t("fatPerDay")}</label>
+            <NumberField
+              id="fat"
+              mode="numeric"
+              min={0}
+              max={300}
+              value={preview.dailyFatTargetG}
+              onValueChange={(dailyFatTargetG) =>
+                setForm({ ...form, dailyFatTargetG })
+              }
+            />
+            {typeof form.dailyFatTargetG === "number" && (
+              <button
+                type="button"
+                className="mt-1 text-left text-sm text-[var(--brand)]"
+                onClick={() =>
+                  setForm({ ...form, dailyFatTargetG: undefined })
+                }
+              >
+                {t("useSuggested")}
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="rounded-xl bg-[var(--brand-soft)] p-4">
           <p className="text-sm text-[var(--ink-muted)]">
             {t("bmrTdee", { bmr: preview.bmr, tdee: preview.tdee })}
@@ -267,6 +336,12 @@ export function SettingsForm() {
           </p>
           <p className="mt-1 text-[var(--ink-muted)]">
             {t("proteinTarget", { n: preview.dailyProteinTargetG })}
+          </p>
+          <p className="mt-1 text-[var(--ink-muted)]">
+            {t("carbTarget", { n: preview.dailyCarbsTargetG })}
+          </p>
+          <p className="mt-1 text-[var(--ink-muted)]">
+            {t("fatTarget", { n: preview.dailyFatTargetG })}
           </p>
         </div>
 
