@@ -1,4 +1,8 @@
+import { toDateKey } from "./dates";
 import type { DayColor, DayTotals, Profile } from "./types";
+
+/** Same hour as dinner auto-collapse: after this, under-target is judged. */
+export const DAY_CLOSE_HOUR = 21;
 
 const PROTEIN_FLOOR_G_PER_KG = 1.6;
 
@@ -39,11 +43,26 @@ export function proteinStatus(
   return "red";
 }
 
+/** Today before 21:00 — under-target is expected; past days are always closed. */
+export function isDayOpen(date: string, now: Date): boolean {
+  return toDateKey(now) === date && now.getHours() < DAY_CLOSE_HOUR;
+}
+
 export function dayColor(
   totals: DayTotals | null | undefined,
   profile: Profile | null | undefined,
+  ctx?: { date: string; now: Date },
 ): DayColor {
   if (!totals || totals.entryCount === 0 || !profile) return "gray";
+  const stillOpen = ctx ? isDayOpen(ctx.date, ctx.now) : false;
+  if (stillOpen) {
+    const target = profile.dailyCalorieTarget;
+    if (target <= 0) return "green";
+    const ratio = totals.calories / target;
+    if (ratio > 1.1) return "red";
+    if (ratio > 1.0) return "yellow";
+    return "green";
+  }
   const cal = calorieStatus(totals.calories, profile.dailyCalorieTarget);
   const pro = proteinStatus(
     totals.proteinG,
@@ -51,6 +70,24 @@ export function dayColor(
     profile.proteinGPerKg,
   );
   return worst(cal, pro);
+}
+
+export type DayStatusKind =
+  | "empty"
+  | "inProgress"
+  | "ok"
+  | "limit"
+  | "offTarget";
+
+export function dayStatusKind(
+  color: DayColor,
+  stillOpen: boolean,
+): DayStatusKind {
+  if (color === "gray") return "empty";
+  if (stillOpen && color === "green") return "inProgress";
+  if (color === "green") return "ok";
+  if (color === "yellow") return "limit";
+  return "offTarget";
 }
 
 export const DAY_COLOR_HEX: Record<DayColor, string> = {

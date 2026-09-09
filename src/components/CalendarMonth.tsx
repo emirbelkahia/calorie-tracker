@@ -7,7 +7,13 @@ import {
   toDateKey,
   WEEKDAY_LABELS,
 } from "@/lib/dates";
-import { dayColor, DAY_COLOR_HEX } from "@/lib/day-status";
+import {
+  dayColor,
+  dayStatusKind,
+  isDayOpen,
+  DAY_COLOR_HEX,
+  type DayStatusKind,
+} from "@/lib/day-status";
 import { ensureProfile, getMonthTotals } from "@/lib/db";
 import type { DayColor, DayTotals, Profile } from "@/lib/types";
 import Link from "next/link";
@@ -19,12 +25,10 @@ import { useAppClock } from "@/lib/use-app-clock";
 
 function statusLabel(
   color: DayColor,
-  t: (key: "empty" | "ok" | "limit" | "offTarget") => string,
+  stillOpen: boolean,
+  t: (key: DayStatusKind) => string,
 ) {
-  if (color === "gray") return t("empty");
-  if (color === "green") return t("ok");
-  if (color === "yellow") return t("limit");
-  return t("offTarget");
+  return t(dayStatusKind(color, stillOpen));
 }
 
 export function CalendarMonth() {
@@ -61,7 +65,11 @@ export function CalendarMonth() {
 
   const cells = monthGrid(cursor.getFullYear(), cursor.getMonth());
   const todayTotals = totals[today];
-  const todayColor: DayColor = dayColor(todayTotals, profile);
+  const todayOpen = isDayOpen(today, now);
+  const todayColor: DayColor = dayColor(todayTotals, profile, {
+    date: today,
+    now,
+  });
   const dateLocale = locale === "en" ? "en-US" : "fr-FR";
 
   const monthLabel = cursor.toLocaleDateString(dateLocale, {
@@ -110,7 +118,7 @@ export function CalendarMonth() {
         <div className="grid grid-cols-7 gap-2">
           {cells.map((key, i) => {
             if (!key) return <div key={`empty-${i}`} />;
-            const color = dayColor(totals[key], profile);
+            const color = dayColor(totals[key], profile, { date: key, now });
             const dayNum = Number(key.slice(-2));
             return (
               <button
@@ -146,7 +154,7 @@ export function CalendarMonth() {
                 className="status-pill"
                 style={{ background: DAY_COLOR_HEX[todayColor] }}
               >
-                {statusLabel(todayColor, t)}
+                {statusLabel(todayColor, todayOpen, t)}
               </span>
             </div>
 
