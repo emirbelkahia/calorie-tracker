@@ -1,3 +1,4 @@
+import { DAY_CLOSE_HOUR } from "./day-status";
 import { toDateKey } from "./dates";
 import type { MealType } from "./types";
 
@@ -12,6 +13,6 @@ export function mealAutoCollapsed(
   const hour = now.getHours();
   if (type === "breakfast") return hour >= 10;
   if (type === "lunch") return hour >= 16;
-  if (type === "dinner") return hour >= 21;
+  if (type === "dinner") return hour >= DAY_CLOSE_HOUR;
   return false;
 }
