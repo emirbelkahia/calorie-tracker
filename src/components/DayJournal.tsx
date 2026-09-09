@@ -16,6 +16,7 @@ import {
 } from "@/lib/db";
 import type { DayTotals, FoodEntry, Meal, MealType, Profile } from "@/lib/types";
 import { AddFoodModal, type FoodDraft } from "./AddFoodModal";
+import { SavedMealsModal } from "./SavedMealsModal";
 import { MacroRow } from "./MacroRow";
 import { SettingsGear } from "./SettingsGear";
 import { useLocale } from "./LocaleProvider";
@@ -41,6 +42,7 @@ export function DayJournal({ date }: Props) {
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [totals, setTotals] = useState<DayTotals | null>(null);
   const [activeMealId, setActiveMealId] = useState<number | null>(null);
+  const [savedMealsMealId, setSavedMealsMealId] = useState<number | null>(null);
   const [snackName, setSnackName] = useState("");
   const [showSnackInput, setShowSnackInput] = useState(false);
   const [expandedOverride, setExpandedOverride] = useState<
@@ -107,6 +109,7 @@ export function DayJournal({ date }: Props) {
     return <p className="text-[var(--ink-muted)]">{t("loading")}</p>;
   }
 
+  const savedMealTarget = meals.find((m) => m.id === savedMealsMealId);
   const remaining = profile.dailyCalorieTarget - totals.calories;
   const statusText =
     color === "gray"
@@ -198,7 +201,7 @@ export function DayJournal({ date }: Props) {
                   </span>
                 </span>
               </button>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
                 {meal.type === "snack" && (
                   <button
                     type="button"
@@ -212,6 +215,16 @@ export function DayJournal({ date }: Props) {
                     {t("delete")}
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="btn btn-ghost text-sm px-3"
+                  onClick={() => {
+                    setExpanded(true);
+                    setSavedMealsMealId(meal.id ?? null);
+                  }}
+                >
+                  {t("savedMealsOpen")}
+                </button>
                 <button
                   type="button"
                   className="btn btn-secondary text-sm"
@@ -311,6 +324,17 @@ export function DayJournal({ date }: Props) {
         onClose={() => setActiveMealId(null)}
         onAdd={handleAdd}
       />
+
+      {savedMealsMealId !== null && savedMealTarget && (
+        <SavedMealsModal
+          open
+          mealId={savedMealsMealId}
+          mealTitle={mealTitle(savedMealTarget, t)}
+          canSave={(entriesByMeal.get(savedMealsMealId) ?? []).length > 0}
+          onClose={() => setSavedMealsMealId(null)}
+          onApplied={reload}
+        />
+      )}
     </div>
   );
 }

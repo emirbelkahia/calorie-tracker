@@ -62,6 +62,23 @@ export interface CustomFood {
   fatPer100g: number;
 }
 
+/** Snapshot of a meal’s foods. Applying copies these; logged meals stay untouched. */
+export interface SavedMealItem {
+  name: string;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  quantityG: number;
+  offId?: string;
+}
+
+export interface SavedMeal {
+  id?: number;
+  name: string;
+  items: SavedMealItem[];
+}
+
 export interface DayTotals {
   calories: number;
   proteinG: number;
@@ -77,4 +94,6 @@ export interface BackupPayload {
   meals: Meal[];
   foodEntries: FoodEntry[];
   customFoods: CustomFood[];
+  /** Absent on backups made before saved-meal templates. */
+  savedMeals?: SavedMeal[];
 }
