@@ -11,6 +11,7 @@
   --green: #2f6f4e;
   --yellow: #c9a227;
   --red: #b42318;
+  --blue: #3d6f99;
   --gray-day: #c5cbc7;
   --danger: #b42318;
   --radius: 14px;
@@ -197,6 +198,9 @@ textarea {
 }
 .day-dot[data-color="red"] {
   background: var(--red);
+}
+.day-dot[data-color="blue"] {
+  background: var(--blue);
 }
 .day-dot[data-color="gray"] {
   background: var(--gray-day);

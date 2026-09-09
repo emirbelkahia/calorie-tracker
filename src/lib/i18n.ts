@@ -13,7 +13,7 @@ export const messages = {
     limit: "Limite",
     offTarget: "Hors cible",
     calendarHint:
-      "Vert = dans la bande, ou journée en cours · Jaune/Rouge = déjà trop de kcal, ou journée close hors cible",
+      "Bleu = journée en cours · Vert = dans la bande · Jaune/Rouge = déjà trop de kcal, ou journée close hors cible",
     backCalendar: "← Calendrier",
     macroKcal: "kcal",
     macroProt: "Prot",
@@ -164,7 +164,7 @@ export const messages = {
     limit: "Borderline",
     offTarget: "Off target",
     calendarHint:
-      "Green = on track, or day still open · Yellow/Red = already over calories, or the day closed off target",
+      "Blue = day in progress · Green = on track · Yellow/Red = already over calories, or the day closed off target",
     backCalendar: "← Calendar",
     macroKcal: "kcal",
     macroProt: "Prot",

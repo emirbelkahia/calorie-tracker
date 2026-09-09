@@ -9,7 +9,7 @@ export type ActivityLevel =
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
-export type DayColor = "green" | "yellow" | "red" | "gray";
+export type DayColor = "green" | "yellow" | "red" | "gray" | "blue";
 
 export type GoalMode = "deficit" | "maintain" | "surplus";
 
