@@ -7,6 +7,8 @@ import type {
   FoodEntry,
   Meal,
   Profile,
+  SavedMeal,
+  SavedMealItem,
 } from "./types";
 
 const DEFAULT_MEALS: Omit<Meal, "id" | "date">[] = [
@@ -20,6 +22,7 @@ class CalorieDB extends Dexie {
   meals!: EntityTable<Meal, "id">;
   foodEntries!: EntityTable<FoodEntry, "id">;
   customFoods!: EntityTable<CustomFood, "id">;
+  savedMeals!: EntityTable<SavedMeal, "id">;
 
   constructor() {
     super("calorie-tracker");
@@ -28,6 +31,9 @@ class CalorieDB extends Dexie {
       meals: "++id, date, type",
       foodEntries: "++id, mealId",
       customFoods: "++id, name",
+    });
+    this.version(2).stores({
+      savedMeals: "++id, name",
     });
   }
 }
@@ -219,13 +225,71 @@ export async function deleteCustomFood(id: number): Promise<void> {
   await db.customFoods.delete(id);
 }
 
+function toSavedMealItem(entry: FoodEntry): SavedMealItem {
+  const item: SavedMealItem = {
+    name: entry.name,
+    calories: entry.calories,
+    proteinG: entry.proteinG,
+    carbsG: entry.carbsG,
+    fatG: entry.fatG,
+    quantityG: entry.quantityG,
+  };
+  if (entry.offId) item.offId = entry.offId;
+  return item;
+}
+
+export async function listSavedMeals(): Promise<SavedMeal[]> {
+  return db.savedMeals.orderBy("name").toArray();
+}
+
+export async function saveMealAsTemplate(
+  mealId: number,
+  name: string,
+): Promise<number> {
+  const entries = await db.foodEntries.where("mealId").equals(mealId).toArray();
+  if (entries.length === 0) {
+    throw new Error("Cannot save an empty meal");
+  }
+  const id = await db.savedMeals.add({
+    name: name.trim(),
+    items: entries.map(toSavedMealItem),
+  });
+  return id as number;
+}
+
+export async function applySavedMeal(
+  mealId: number,
+  savedMealId: number,
+): Promise<void> {
+  const template = await db.savedMeals.get(savedMealId);
+  if (!template || template.items.length === 0) return;
+  await db.foodEntries.bulkAdd(
+    template.items.map((item) => ({
+      mealId,
+      name: item.name,
+      calories: item.calories,
+      proteinG: item.proteinG,
+      carbsG: item.carbsG,
+      fatG: item.fatG,
+      quantityG: item.quantityG,
+      offId: item.offId,
+    })),
+  );
+}
+
+export async function deleteSavedMeal(id: number): Promise<void> {
+  await db.savedMeals.delete(id);
+}
+
 export async function exportBackup(): Promise<BackupPayload> {
-  const [profile, meals, foodEntries, customFoods] = await Promise.all([
-    db.profile.get(1),
-    db.meals.toArray(),
-    db.foodEntries.toArray(),
-    db.customFoods.toArray(),
-  ]);
+  const [profile, meals, foodEntries, customFoods, savedMeals] =
+    await Promise.all([
+      db.profile.get(1),
+      db.meals.toArray(),
+      db.foodEntries.toArray(),
+      db.customFoods.toArray(),
+      db.savedMeals.toArray(),
+    ]);
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -233,6 +297,7 @@ export async function exportBackup(): Promise<BackupPayload> {
     meals,
     foodEntries,
     customFoods,
+    savedMeals,
   };
 }
 
@@ -246,11 +311,13 @@ export async function importBackup(payload: BackupPayload): Promise<void> {
     db.meals,
     db.foodEntries,
     db.customFoods,
+    db.savedMeals,
     async () => {
       await Promise.all([
         db.foodEntries.clear(),
         db.meals.clear(),
         db.customFoods.clear(),
+        db.savedMeals.clear(),
         db.profile.clear(),
       ]);
       if (payload.profile) await db.profile.put(payload.profile);
@@ -260,6 +327,9 @@ export async function importBackup(payload: BackupPayload): Promise<void> {
       }
       if (payload.customFoods.length) {
         await db.customFoods.bulkPut(payload.customFoods);
+      }
+      if (payload.savedMeals?.length) {
+        await db.savedMeals.bulkPut(payload.savedMeals);
       }
     },
   );
