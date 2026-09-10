@@ -15,6 +15,7 @@ import {
 } from "@/lib/db";
 import type { CustomFood } from "@/lib/types";
 import type { LabelNutrition } from "@/lib/mistral-label";
+import type { PlateEstimate, PlateItemEstimate } from "@/lib/mistral-plate";
 import { compressImageForOcr } from "@/lib/image-compress";
 import { getMistralApiKey, hasMistralApiKey } from "@/lib/mistral-key";
 import { BarcodeIcon, BarcodeScanner } from "./BarcodeScanner";
@@ -62,11 +63,18 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     saveAsCustom: true,
   });
   const [busy, setBusy] = useState(false);
-  const [canUseLabelPhoto, setCanUseLabelPhoto] = useState(false);
+  const [canUseMistral, setCanUseMistral] = useState(false);
   const [labelPreview, setLabelPreview] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [labelWarning, setLabelWarning] = useState<string | null>(null);
   const [labelError, setLabelError] = useState<string | null>(null);
+  const [platePreview, setPlatePreview] = useState<string | null>(null);
+  const [plateItems, setPlateItems] = useState<PlateItemEstimate[] | null>(
+    null,
+  );
+  const [plateDishName, setPlateDishName] = useState("");
+  const [extractingPlate, setExtractingPlate] = useState(false);
+  const [plateError, setPlateError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanStream, setScanStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState(false);
@@ -80,12 +88,16 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
   useEffect(() => {
     if (!open) return;
     listCustomFoods().then(setCustomFoods);
-    setCanUseLabelPhoto(hasMistralApiKey());
+    setCanUseMistral(hasMistralApiKey());
     setPickedCustom(null);
     setEditingCustom(null);
     setLabelPreview(null);
     setLabelWarning(null);
     setLabelError(null);
+    setPlatePreview(null);
+    setPlateItems(null);
+    setPlateDishName("");
+    setPlateError(null);
     setBarcodeMiss(null);
     setFromScan(false);
     setSaveSelectedAsCustom(true);
@@ -194,6 +206,10 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
       setLabelPreview(null);
       setLabelWarning(null);
       setLabelError(null);
+      setPlatePreview(null);
+      setPlateItems(null);
+      setPlateDishName("");
+      setPlateError(null);
     } finally {
       setBusy(false);
     }
@@ -215,7 +231,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
     if (!labelPreview) return;
     const apiKey = getMistralApiKey();
     if (!apiKey) {
-      setCanUseLabelPhoto(false);
+      setCanUseMistral(false);
       setLabelError(t("labelHint"));
       return;
     }
@@ -260,6 +276,104 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
       setLabelError(t("labelExtractFailed"));
     } finally {
       setExtracting(false);
+    }
+  }
+
+  async function onPickPlatePhoto(file: File | null) {
+    if (!file) return;
+    setPlateError(null);
+    setPlateItems(null);
+    setPlateDishName("");
+    try {
+      const dataUrl = await compressImageForOcr(file);
+      setPlatePreview(dataUrl);
+    } catch {
+      setPlateError(t("plateExtractFailed"));
+    }
+  }
+
+  async function onEstimatePlate() {
+    if (!platePreview) return;
+    const apiKey = getMistralApiKey();
+    if (!apiKey) {
+      setCanUseMistral(false);
+      setPlateError(t("labelHint"));
+      return;
+    }
+    setExtractingPlate(true);
+    setPlateError(null);
+    try {
+      const res = await fetch("/api/foods/from-plate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-mistral-api-key": apiKey,
+        },
+        body: JSON.stringify({ imageDataUrl: platePreview }),
+      });
+      const data = (await res.json()) as {
+        plate?: PlateEstimate;
+        error?: string;
+      };
+      if (!res.ok || !data.plate?.items.length) {
+        if (data.error === "invalid_api_key" || res.status === 401) {
+          setPlateError(t("labelBadKey"));
+        } else {
+          setPlateError(t("plateExtractFailed"));
+        }
+        return;
+      }
+      setPlateDishName(data.plate.dishName);
+      setPlateItems(data.plate.items);
+    } catch {
+      setPlateError(t("plateExtractFailed"));
+    } finally {
+      setExtractingPlate(false);
+    }
+  }
+
+  function updatePlateItem(index: number, patch: Partial<PlateItemEstimate>) {
+    setPlateItems((items) => {
+      if (!items) return items;
+      return items.map((item, i) => (i === index ? { ...item, ...patch } : item));
+    });
+  }
+
+  function removePlateItem(index: number) {
+    setPlateItems((items) => {
+      if (!items) return items;
+      return items.filter((_, i) => i !== index);
+    });
+  }
+
+  function clearPlateReview() {
+    setPlateItems(null);
+    setPlateDishName("");
+  }
+
+  async function confirmPlate() {
+    if (!plateItems?.length) return;
+    const drafts = plateItems.filter((item) => item.name.trim());
+    if (drafts.length === 0) return;
+    setBusy(true);
+    try {
+      for (const item of drafts) {
+        await onAdd({
+          name: item.name.trim(),
+          calories: item.calories,
+          proteinG: item.proteinG,
+          carbsG: item.carbsG,
+          fatG: item.fatG,
+          quantityG: Math.max(1, item.quantityG),
+        });
+      }
+      onClose();
+      setPlatePreview(null);
+      setPlateItems(null);
+      setPlateDishName("");
+      setPlateError(null);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -385,6 +499,129 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
           </button>
         </div>
 
+        {plateItems !== null ? (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="text-left text-sm text-[var(--brand)]"
+              onClick={clearPlateReview}
+            >
+              {t("back")}
+            </button>
+            {platePreview && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={platePreview}
+                alt=""
+                className="max-h-36 w-full rounded-lg object-contain bg-[var(--bg)]"
+              />
+            )}
+            {plateDishName ? (
+              <p className="font-semibold">{plateDishName}</p>
+            ) : null}
+            <p className="text-sm text-[var(--yellow)]">
+              {t("plateEstimateHint")}
+            </p>
+            {plateItems.map((item, index) => (
+              <div
+                key={`${item.name}-${index}`}
+                className="flex flex-col gap-2 rounded-xl border border-[var(--line)] bg-white p-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="field min-w-0 flex-1">
+                    <label htmlFor={`plate-name-${index}`}>
+                      {t("plateItemName")}
+                    </label>
+                    <input
+                      id={`plate-name-${index}`}
+                      value={item.name}
+                      onChange={(e) =>
+                        updatePlateItem(index, { name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost mt-6 shrink-0 px-3 text-sm"
+                    onClick={() => removePlateItem(index)}
+                  >
+                    {t("delete")}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="field">
+                    <label htmlFor={`plate-g-${index}`}>{t("quantityG")}</label>
+                    <NumberField
+                      id={`plate-g-${index}`}
+                      mode="decimal"
+                      value={item.quantityG}
+                      onValueChange={(value) =>
+                        updatePlateItem(index, { quantityG: value })
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`plate-kcal-${index}`}>
+                      {t("kcalAmount")}
+                    </label>
+                    <NumberField
+                      id={`plate-kcal-${index}`}
+                      mode="decimal"
+                      value={item.calories}
+                      onValueChange={(value) =>
+                        updatePlateItem(index, { calories: value })
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`plate-p-${index}`}>{t("proteinG")}</label>
+                    <NumberField
+                      id={`plate-p-${index}`}
+                      mode="decimal"
+                      value={item.proteinG}
+                      onValueChange={(value) =>
+                        updatePlateItem(index, { proteinG: value })
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`plate-c-${index}`}>{t("carbsG")}</label>
+                    <NumberField
+                      id={`plate-c-${index}`}
+                      mode="decimal"
+                      value={item.carbsG}
+                      onValueChange={(value) =>
+                        updatePlateItem(index, { carbsG: value })
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`plate-f-${index}`}>{t("fatG")}</label>
+                    <NumberField
+                      id={`plate-f-${index}`}
+                      mode="decimal"
+                      value={item.fatG}
+                      onValueChange={(value) =>
+                        updatePlateItem(index, { fatG: value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={
+                busy || plateItems.filter((item) => item.name.trim()).length === 0
+              }
+              onClick={confirmPlate}
+            >
+              {t("addPlateItems")}
+            </button>
+          </div>
+        ) : (
+          <>
         <div className="mb-4 grid grid-cols-3 gap-2">
           {(
             [
@@ -423,6 +660,60 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
 
         {tab === "search" && !selected && !scanning && (
           <div className="flex flex-col gap-3">
+            {canUseMistral && (
+              <div className="flex flex-col gap-2 rounded-xl border border-[var(--line)] bg-white p-3">
+                {!platePreview ? (
+                  <label className="btn btn-secondary cursor-pointer">
+                    {t("photoPlate")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) =>
+                        onPickPlatePhoto(e.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={platePreview}
+                      alt=""
+                      className="max-h-48 w-full rounded-lg object-contain bg-[var(--bg)]"
+                    />
+                    <div className="flex gap-2">
+                      <label className="btn btn-ghost flex-1 cursor-pointer text-sm">
+                        {t("changePhoto")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) =>
+                            onPickPlatePhoto(e.target.files?.[0] ?? null)
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-secondary flex-1 text-sm"
+                        disabled={extractingPlate}
+                        onClick={onEstimatePlate}
+                      >
+                        {extractingPlate
+                          ? t("estimatingPlate")
+                          : t("estimatePlate")}
+                      </button>
+                    </div>
+                  </>
+                )}
+                {plateError && (
+                  <p className="text-sm text-[var(--red)]">{plateError}</p>
+                )}
+              </div>
+            )}
             <button
               type="button"
               className="btn btn-secondary flex items-center justify-center gap-2"
@@ -585,7 +876,7 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
 
         {tab === "manual" && (
           <div className="flex flex-col gap-3">
-            {canUseLabelPhoto && (
+            {canUseMistral && (
               <div className="flex flex-col gap-2 rounded-xl border border-[var(--line)] bg-white p-3">
                 {!labelPreview ? (
                   <label className="btn btn-secondary cursor-pointer">
@@ -924,6 +1215,8 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
               </li>
             ))}
           </ul>
+        )}
+          </>
         )}
       </div>
     </div>
