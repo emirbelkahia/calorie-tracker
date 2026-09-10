@@ -206,6 +206,29 @@ export async function deleteMeal(id: number): Promise<void> {
   await db.meals.delete(id);
 }
 
+function normalizeFoodName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function macrosMatch(
+  a: Pick<
+    CustomFood,
+    "caloriesPer100g" | "proteinPer100g" | "carbsPer100g" | "fatPer100g"
+  >,
+  b: Pick<
+    CustomFood,
+    "caloriesPer100g" | "proteinPer100g" | "carbsPer100g" | "fatPer100g"
+  >,
+): boolean {
+  const round = (n: number) => Math.round(n * 10) / 10;
+  return (
+    round(a.caloriesPer100g) === round(b.caloriesPer100g) &&
+    round(a.proteinPer100g) === round(b.proteinPer100g) &&
+    round(a.carbsPer100g) === round(b.carbsPer100g) &&
+    round(a.fatPer100g) === round(b.fatPer100g)
+  );
+}
+
 export async function upsertCustomFood(
   food: Omit<CustomFood, "id"> & { id?: number },
 ): Promise<number> {
@@ -213,7 +236,15 @@ export async function upsertCustomFood(
     await db.customFoods.put(food as CustomFood);
     return food.id;
   }
-  const id = await db.customFoods.add(food);
+  const name = food.name.trim();
+  const existing = await db.customFoods.toArray();
+  const match = existing.find(
+    (item) =>
+      normalizeFoodName(item.name) === normalizeFoodName(name) &&
+      macrosMatch(item, food),
+  );
+  if (match?.id) return match.id;
+  const id = await db.customFoods.add({ ...food, name });
   return id as number;
 }
 

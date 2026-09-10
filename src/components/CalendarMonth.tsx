@@ -10,7 +10,6 @@ import {
 import {
   dayColor,
   dayStatusKind,
-  isDayOpen,
   DAY_COLOR_HEX,
   type DayStatusKind,
 } from "@/lib/day-status";
@@ -25,10 +24,9 @@ import { useAppClock } from "@/lib/use-app-clock";
 
 function statusLabel(
   color: DayColor,
-  stillOpen: boolean,
   t: (key: DayStatusKind) => string,
 ) {
-  return t(dayStatusKind(color, stillOpen));
+  return t(dayStatusKind(color));
 }
 
 export function CalendarMonth() {
@@ -65,7 +63,6 @@ export function CalendarMonth() {
 
   const cells = monthGrid(cursor.getFullYear(), cursor.getMonth());
   const todayTotals = totals[today];
-  const todayOpen = isDayOpen(today, now);
   const todayColor: DayColor = dayColor(todayTotals, profile, {
     date: today,
     now,
@@ -154,7 +151,7 @@ export function CalendarMonth() {
                 className="status-pill"
                 style={{ background: DAY_COLOR_HEX[todayColor] }}
               >
-                {statusLabel(todayColor, todayOpen, t)}
+                {statusLabel(todayColor, t)}
               </span>
             </div>
 

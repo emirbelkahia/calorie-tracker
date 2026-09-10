@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDisplayDate } from "@/lib/dates";
-import { dayColor, dayStatusKind, isDayOpen, DAY_COLOR_HEX } from "@/lib/day-status";
+import { dayColor, dayStatusKind, DAY_COLOR_HEX } from "@/lib/day-status";
 import {
   addFoodEntry,
   addSnack,
@@ -111,7 +111,7 @@ export function DayJournal({ date }: Props) {
 
   const savedMealTarget = meals.find((m) => m.id === savedMealsMealId);
   const remaining = profile.dailyCalorieTarget - totals.calories;
-  const statusText = t(dayStatusKind(color, isDayOpen(date, now)));
+  const statusText = t(dayStatusKind(color));
 
   return (
     <div className="flex flex-col gap-5">

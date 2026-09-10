@@ -9,9 +9,10 @@ const PROTEIN_FLOOR_G_PER_KG = 1.6;
 function worst(a: DayColor, b: DayColor): DayColor {
   const rank: Record<DayColor, number> = {
     gray: 0,
-    green: 1,
-    yellow: 2,
-    red: 3,
+    blue: 1,
+    green: 2,
+    yellow: 3,
+    red: 4,
   };
   return rank[a] >= rank[b] ? a : b;
 }
@@ -20,7 +21,7 @@ function worst(a: DayColor, b: DayColor): DayColor {
 export function calorieStatus(
   calories: number,
   target: number,
-): Exclude<DayColor, "gray"> {
+): Exclude<DayColor, "gray" | "blue"> {
   if (target <= 0) return "yellow";
   const ratio = calories / target;
   if (ratio >= 0.9 && ratio <= 1.0) return "green";
@@ -35,7 +36,7 @@ export function proteinStatus(
   proteinG: number,
   weightKg: number,
   proteinGPerKg: number,
-): Exclude<DayColor, "gray"> {
+): Exclude<DayColor, "gray" | "blue"> {
   if (weightKg <= 0) return "yellow";
   const perKg = proteinG / weightKg;
   if (perKg >= proteinGPerKg) return "green";
@@ -57,11 +58,11 @@ export function dayColor(
   const stillOpen = ctx ? isDayOpen(ctx.date, ctx.now) : false;
   if (stillOpen) {
     const target = profile.dailyCalorieTarget;
-    if (target <= 0) return "green";
+    if (target <= 0) return "blue";
     const ratio = totals.calories / target;
     if (ratio > 1.1) return "red";
     if (ratio > 1.0) return "yellow";
-    return "green";
+    return "blue";
   }
   const cal = calorieStatus(totals.calories, profile.dailyCalorieTarget);
   const pro = proteinStatus(
@@ -79,12 +80,9 @@ export type DayStatusKind =
   | "limit"
   | "offTarget";
 
-export function dayStatusKind(
-  color: DayColor,
-  stillOpen: boolean,
-): DayStatusKind {
+export function dayStatusKind(color: DayColor): DayStatusKind {
   if (color === "gray") return "empty";
-  if (stillOpen && color === "green") return "inProgress";
+  if (color === "blue") return "inProgress";
   if (color === "green") return "ok";
   if (color === "yellow") return "limit";
   return "offTarget";
@@ -95,4 +93,5 @@ export const DAY_COLOR_HEX: Record<DayColor, string> = {
   yellow: "#C9A227",
   red: "#B42318",
   gray: "#C5CBC7",
+  blue: "#3D6F99",
 };
