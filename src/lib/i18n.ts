@@ -134,7 +134,7 @@ export const messages = {
     activityVeryActive: "Très actif",
     mistralKeyTitle: "Clé API Mistral",
     mistralKeyHint:
-      "Optionnel. Ta clé reste sur cet appareil et débloque la photo d’étiquette. Elle n’est jamais mise dans le backup.",
+      "Optionnel. Ta clé reste sur cet appareil et débloque la photo d’étiquette et la photo d’assiette. Elle n’est jamais mise dans le backup.",
     mistralKeyPlaceholder: "Coller ta clé Mistral…",
     mistralKeySaved: "Clé enregistrée",
     mistralKeyCleared: "Clé effacée",
@@ -151,6 +151,18 @@ export const messages = {
     labelBasisWarning:
       "Valeurs peut-être par portion (pas /100g) — vérifie avant d’ajouter.",
     changePhoto: "Changer la photo",
+    photoPlate: "Photo d’assiette",
+    estimatePlate: "Estimer",
+    estimatingPlate: "Estimation…",
+    plateEstimateHint: "Estimation — à vérifier avant d’ajouter.",
+    plateExtractFailed:
+      "Estimation impossible — vérifie la photo ou saisis à la main.",
+    addPlateItems: "Ajouter au repas",
+    plateItemName: "Aliment",
+    kcalAmount: "kcal",
+    proteinG: "Protéines (g)",
+    carbsG: "Glucides (g)",
+    fatG: "Lipides (g)",
   },
   en: {
     brand: "Calorie Tracker",
@@ -282,7 +294,7 @@ export const messages = {
     activityVeryActive: "Very active",
     mistralKeyTitle: "Mistral API key",
     mistralKeyHint:
-      "Optional. Stored on this device only; unlocks label photo. Never included in backup export.",
+      "Optional. Stored on this device only; unlocks label photo and plate photo. Never included in backup export.",
     mistralKeyPlaceholder: "Paste your Mistral key…",
     mistralKeySaved: "Key saved",
     mistralKeyCleared: "Key cleared",
@@ -298,6 +310,17 @@ export const messages = {
     labelBasisWarning:
       "Values may be per serving (not /100g) — double-check before adding.",
     changePhoto: "Change photo",
+    photoPlate: "Plate photo",
+    estimatePlate: "Estimate",
+    estimatingPlate: "Estimating…",
+    plateEstimateHint: "Estimate — check before adding.",
+    plateExtractFailed: "Couldn’t estimate — check the photo or enter manually.",
+    addPlateItems: "Add to meal",
+    plateItemName: "Food",
+    kcalAmount: "kcal",
+    proteinG: "Protein (g)",
+    carbsG: "Carbs (g)",
+    fatG: "Fat (g)",
   },
 } as const;
 
