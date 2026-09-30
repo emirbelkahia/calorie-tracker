@@ -4,6 +4,9 @@ import { useEffect } from "react";
 export function useScrollLock(locked: boolean): void {
   useEffect(() => {
     if (!locked) return;
+    const scroller = document.querySelector<HTMLElement>(".app-scroll");
+    const prevScrollerOverflow = scroller?.style.overflow ?? "";
+    if (scroller) scroller.style.overflow = "hidden";
     const html = document.documentElement;
     const { body } = document;
     const scrollY = window.scrollY;
@@ -24,6 +27,7 @@ export function useScrollLock(locked: boolean): void {
     body.style.width = "100%";
     body.style.overflow = "hidden";
     return () => {
+      if (scroller) scroller.style.overflow = prevScrollerOverflow;
       html.style.overflow = prevHtmlOverflow;
       body.style.position = prev.position;
       body.style.top = prev.top;

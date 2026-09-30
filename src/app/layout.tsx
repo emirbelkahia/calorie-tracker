@@ -47,7 +47,9 @@ export default function RootLayout({
     <html lang="fr" className={`${outfit.variable} ${fraunces.variable}`}>
       <body>
         <LocaleProvider>
-          <div className="app-shell">{children}</div>
+          <div className="app-shell">
+            <div className="app-scroll">{children}</div>
+          </div>
         </LocaleProvider>
       </body>
     </html>

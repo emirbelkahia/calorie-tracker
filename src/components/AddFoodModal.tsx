@@ -19,6 +19,7 @@ import type { PlateEstimate, PlateItemEstimate } from "@/lib/mistral-plate";
 import { compressImageForOcr } from "@/lib/image-compress";
 import { getMistralApiKey, hasMistralApiKey } from "@/lib/mistral-key";
 import { BarcodeIcon, BarcodeScanner } from "./BarcodeScanner";
+import { CameraIcon } from "./CameraIcon";
 import { useLocale } from "./LocaleProvider";
 import { NumberField } from "./NumberField";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -660,11 +661,40 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
 
         {tab === "search" && !selected && !scanning && (
           <div className="flex flex-col gap-3">
-            {canUseMistral && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={startScan}
+            >
+              <BarcodeIcon size={20} />
+              {t("scanBarcode")}
+            </button>
+            {canUseMistral && !platePreview && (
+              <label className="btn btn-secondary cursor-pointer">
+                <CameraIcon />
+                {t("photoPlate")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) =>
+                    onPickPlatePhoto(e.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+            )}
+            {canUseMistral && platePreview && (
               <div className="flex flex-col gap-2 rounded-xl border border-[var(--line)] bg-white p-3">
-                {!platePreview ? (
-                  <label className="btn btn-secondary cursor-pointer">
-                    {t("photoPlate")}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={platePreview}
+                  alt=""
+                  className="max-h-48 w-full rounded-lg object-contain bg-[var(--bg)]"
+                />
+                <div className="flex gap-2">
+                  <label className="btn btn-ghost flex-1 cursor-pointer text-sm">
+                    {t("changePhoto")}
                     <input
                       type="file"
                       accept="image/*"
@@ -675,53 +705,22 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                       }
                     />
                   </label>
-                ) : (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={platePreview}
-                      alt=""
-                      className="max-h-48 w-full rounded-lg object-contain bg-[var(--bg)]"
-                    />
-                    <div className="flex gap-2">
-                      <label className="btn btn-ghost flex-1 cursor-pointer text-sm">
-                        {t("changePhoto")}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) =>
-                            onPickPlatePhoto(e.target.files?.[0] ?? null)
-                          }
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="btn btn-secondary flex-1 text-sm"
-                        disabled={extractingPlate}
-                        onClick={onEstimatePlate}
-                      >
-                        {extractingPlate
-                          ? t("estimatingPlate")
-                          : t("estimatePlate")}
-                      </button>
-                    </div>
-                  </>
-                )}
-                {plateError && (
-                  <p className="text-sm text-[var(--red)]">{plateError}</p>
-                )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary flex-1 text-sm"
+                    disabled={extractingPlate}
+                    onClick={onEstimatePlate}
+                  >
+                    {extractingPlate
+                      ? t("estimatingPlate")
+                      : t("estimatePlate")}
+                  </button>
+                </div>
               </div>
             )}
-            <button
-              type="button"
-              className="btn btn-secondary flex items-center justify-center gap-2"
-              onClick={startScan}
-            >
-              <BarcodeIcon />
-              {t("scanBarcode")}
-            </button>
+            {canUseMistral && plateError && (
+              <p className="text-sm text-[var(--red)]">{plateError}</p>
+            )}
             <div className="field">
               <label htmlFor="off-search">{t("searchLabel")}</label>
               <input
@@ -729,7 +728,9 @@ export function AddFoodModal({ open, onClose, onAdd }: Props) {
                 value={query}
                 placeholder={t("searchPlaceholder")}
                 onChange={(e) => setQuery(e.target.value)}
-                autoFocus
+                onFocus={(event) => {
+                  event.currentTarget.scrollIntoView({ block: "nearest" });
+                }}
               />
             </div>
             {searching && (

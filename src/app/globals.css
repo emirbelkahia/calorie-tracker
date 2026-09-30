@@ -31,7 +31,8 @@
 
 html,
 body {
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -60,12 +61,21 @@ textarea {
 .app-shell {
   width: min(560px, 100%);
   margin: 0 auto;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 0 16px 28px;
-  padding-top: max(16px, env(safe-area-inset-top));
-  padding-bottom: max(28px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px 28px;
 }
 
 .icon-btn {
@@ -217,14 +227,14 @@ textarea {
   display: grid;
   place-items: end center;
   z-index: 50;
-  padding: 12px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding: max(12px, env(safe-area-inset-top)) 12px
+    max(12px, env(safe-area-inset-bottom));
   overscroll-behavior: none;
 }
 
 .modal-sheet {
   width: min(560px, 100%);
-  max-height: min(88dvh, 760px);
+  max-height: 100%;
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -234,16 +244,62 @@ textarea {
   box-shadow: var(--shadow);
 }
 
+.meal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 12px;
+  row-gap: 10px;
+}
+
 .meal-toggle {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  flex: 1 1 auto;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
   background: transparent;
   color: inherit;
   cursor: pointer;
+}
+
+.meal-name {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.meal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  max-width: 100%;
+}
+
+.meal-delete {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger) 12%, white);
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.meal-delete:active {
+  transform: scale(0.98);
 }
 
 .meal-chevron {
