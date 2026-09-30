@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
+import { AppScroll } from "@/components/AppScroll";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import "./globals.css";
 
@@ -47,7 +48,9 @@ export default function RootLayout({
     <html lang="fr" className={`${outfit.variable} ${fraunces.variable}`}>
       <body>
         <LocaleProvider>
-          <div className="app-shell">{children}</div>
+          <div className="app-shell">
+            <AppScroll>{children}</AppScroll>
+          </div>
         </LocaleProvider>
       </body>
     </html>

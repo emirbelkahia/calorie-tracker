@@ -27,6 +27,37 @@ interface Props {
   date: string;
 }
 
+function TrashIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M4 7h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7 7l.8 12.2a1.2 1.2 0 0 0 1.2 1.1h6a1.2 1.2 0 0 0 1.2-1.1L17 7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function mealTitle(
   meal: Meal,
   t: (key: "breakfast" | "lunch" | "dinner" | "snack") => string,
@@ -172,10 +203,10 @@ export function DayJournal({ date }: Props) {
 
         return (
           <section key={meal.id} className="panel p-4">
-            <div className="mb-0 flex items-start justify-between gap-3">
+            <div className="meal-head">
               <button
                 type="button"
-                className="meal-toggle min-w-0 flex-1 text-left"
+                className="meal-toggle text-left"
                 aria-expanded={expanded}
                 aria-label={t("mealToggle")}
                 onClick={() => setExpanded(!expanded)}
@@ -185,8 +216,8 @@ export function DayJournal({ date }: Props) {
                   data-open={expanded ? "true" : "false"}
                   aria-hidden="true"
                 />
-                <span className="min-w-0">
-                  <span className="display block text-xl">
+                <span>
+                  <span className="meal-name display text-xl">
                     {mealTitle(meal, t)}
                   </span>
                   <span className="text-sm text-[var(--ink-muted)]">
@@ -194,18 +225,19 @@ export function DayJournal({ date }: Props) {
                   </span>
                 </span>
               </button>
-              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+              <div className="meal-actions">
                 {meal.type === "snack" && (
                   <button
                     type="button"
-                    className="btn btn-danger px-3 text-sm"
+                    className="meal-delete"
+                    aria-label={t("deleteSnack")}
                     onClick={async () => {
                       if (!meal.id) return;
                       await deleteMeal(meal.id);
                       await reload();
                     }}
                   >
-                    {t("delete")}
+                    <TrashIcon />
                   </button>
                 )}
                 <button
