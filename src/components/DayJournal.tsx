@@ -230,7 +230,7 @@ export function DayJournal({ date }: Props) {
                   <button
                     type="button"
                     className="meal-delete"
-                    aria-label={t("delete")}
+                    aria-label={t("deleteSnack")}
                     onClick={async () => {
                       if (!meal.id) return;
                       await deleteMeal(meal.id);
